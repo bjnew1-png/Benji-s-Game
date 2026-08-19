@@ -37,12 +37,14 @@ const ctx = canvas.getContext("2d");
 canvas.width = 900;
 canvas.height = 400;
 
-// LOADING SCREEN FADE
-setTimeout(() => {
-    const load = document.getElementById("loadingScreen");
-    load.style.opacity = 0;
-    setTimeout(() => load.style.display = "none", 1000);
-}, 2000);
+// ⭐ FIXED LOADING SCREEN — ALWAYS FADES OUT
+window.onload = () => {
+    setTimeout(() => {
+        const load = document.getElementById("loadingScreen");
+        load.style.opacity = 0;
+        setTimeout(() => load.style.display = "none", 1000);
+    }, 1500);
+};
 
 // PLAYER
 let player = {
@@ -67,8 +69,7 @@ let demon = {
 let objects = [];
 
 /* ---------------------------------------------------
-   RANDOM SPIKE ROWS (1–3 spikes long)
-   + RANDOM PLATFORMS WITH SPIKES ON THEM
+   RANDOM 1–3 SPIKES IN A ROW + PLATFORMS WITH SPIKES
 --------------------------------------------------- */
 
 function addSpikeRow(startX) {
@@ -149,3 +150,100 @@ function loop() {
     player.dy += 0.4;   // LONGER JUMP
     player.y += player.dy;
 
+    // Ground collision
+    if (player.y >= 330) {
+        player.y = 330;
+        player.dy = 0;
+        player.grounded = true;
+    }
+
+    // Movement (FASTER SPEED)
+    player.x += 4;
+    demon.x += demon.speed;
+
+    // Camera
+    let camX = player.x - 100;
+
+    // Draw player
+    ctx.fillStyle = "#4af";
+    ctx.fillRect(player.x - camX, player.y, player.w, player.h);
+
+    // Draw demon
+    ctx.fillStyle = "#f33";
+    ctx.fillRect(demon.x - camX, demon.y, demon.w, demon.h);
+
+    // Draw objects
+    objects.forEach(o => {
+
+        // PLATFORM
+        if (o.type === "platform") {
+            ctx.fillStyle = "#888";
+            ctx.fillRect(o.x - camX, o.y, o.w, o.h);
+
+            // Platform collision
+            if (player.x < o.x + o.w &&
+                player.x + player.w > o.x &&
+                player.y + player.h > o.y &&
+                player.y + player.h < o.y + 20 &&
+                player.dy > 0) {
+
+                player.y = o.y - player.h;
+                player.dy = 0;
+                player.grounded = true;
+            }
+
+            return;
+        }
+
+        // TRIANGLE SPIKES
+        if (o.type === "spike") {
+            ctx.fillStyle = "#ff0000";
+            ctx.beginPath();
+            ctx.moveTo(o.x - camX + o.w/2, o.y);
+            ctx.lineTo(o.x - camX, o.y + o.h);
+            ctx.lineTo(o.x - camX + o.w, o.y + o.h);
+            ctx.closePath();
+            ctx.fill();
+
+            // Spike collision
+            if (player.x < o.x + o.w &&
+                player.x + player.w > o.x &&
+                player.y + player.h > o.y) {
+                demon.speed += 0.1;
+                end();
+            }
+
+            return;
+        }
+
+        // FINISH LINE
+        if (o.type === "finish") ctx.fillStyle = "#fff";
+
+        ctx.fillRect(o.x - camX, o.y, o.w, o.h);
+
+        if (o.type === "finish") {
+            if (player.x < o.x + o.w &&
+                player.x + player.w > o.x &&
+                player.y < o.y + o.h &&
+                player.y + player.h > o.y) {
+                end();
+            }
+        }
+    });
+
+    // Demon catches player
+    if (demon.x + demon.w >= player.x) {
+        end();
+    }
+
+    requestAnimationFrame(loop);
+}
+
+function end() {
+    location.reload(); // INSTANT RESTART
+}
+
+loop(); // ⭐ GAME LOOP ALWAYS STARTS
+</script>
+</body>
+</html>
