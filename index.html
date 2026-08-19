@@ -29,37 +29,30 @@ let player = {
 
 // CHASER (Cube Demon)
 let demon = {
-    x: 100 - 120,   // stays 12 tiles behind
+    x: -20,     // behind player
     y: 300,
     w: 40,
     h: 40,
-    speed: 2        // SAME speed as level scroll
+    speed: 2    // base speed
 };
 
 // LEVEL OBJECTS
 let objects = [
-    // Section 1 — Warm-up
     {x:300, y:330, w:40, h:40, type:"spike"},
     {x:450, y:330, w:40, h:40, type:"break"},
-
-    // Section 2 — Panic
     {x:650, y:330, w:40, h:10, type:"jumpPad"},
     {x:800, y:330, w:40, h:10, type:"flipPad"},
     {x:950, y:330, w:40, h:80, type:"slowGate"},
     {x:1100, y:330, w:80, h:80, type:"shadow"},
-
-    // Section 3 — Escape Burst
     {x:1300, y:330, w:40, h:10, type:"boost"},
     {x:1500, y:330, w:80, h:10, type:"moving"},
     {x:1700, y:330, w:40, h:40, type:"spike"},
     {x:1800, y:330, w:40, h:40, type:"spike"},
-
-    // Section 4 — Final Stretch
     {x:2000, y:330, w:40, h:40, type:"collapse"},
 ];
 
 // GAME SPEED
-let speed = 2; // slow sprint
+let speed = 2;
 
 // INPUT — SPACE to jump
 document.addEventListener("keydown", (e) => {
@@ -83,10 +76,10 @@ function loop() {
         player.grounded = true;
     }
 
-    // Move level
-    objects.forEach(o => o.x -= speed);
+    // Player moves forward instead of level scrolling
+    player.x += speed;
 
-    // Demon moves same speed as level
+    // Demon chases player
     demon.x += demon.speed;
 
     // Draw player
@@ -128,11 +121,7 @@ function loop() {
             if (o.type === "jumpPad") player.dy = -14;
             if (o.type === "flipPad") player.dy = -8;
 
-            // slowGate NO LONGER boosts demon
-            if (o.type === "slowGate") {
-                // removed demon.speed += 0.8;
-            }
-
+            // slowGate no longer boosts demon
             if (o.type === "shadow") demon.visible = false;
             if (o.type === "boost") player.x += 40;
             if (o.type === "collapse") speed = 1.8;
@@ -141,7 +130,7 @@ function loop() {
 
     // Demon catches player
     if (demon.x + demon.w >= player.x) {
-        end(you suck Benji;
+        end("Cube Demon caught you!");
     }
 
     requestAnimationFrame(loop);
