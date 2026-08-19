@@ -1,7 +1,7 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-<title>Woodshop Warrior – 10 Levels</title>
+<title>Woodshop Warrior – Upgraded 2D</title>
 <style>
   body {
     margin:0;
@@ -29,12 +29,20 @@ const ctx = canvas.getContext("2d");
 
 let levelIndex = 0;
 
+const corners = [
+  { x:70, y:60 },       // top-left
+  { x:710, y:60 },      // top-right
+  { x:70, y:400 },      // bottom-left
+  { x:710, y:400 }      // bottom-right
+];
+
 function makeLevel(num){
+  const corner = corners[num % 4];
   return {
     name: "Level " + num,
     time: 50 - num * 3,
     rageMax: 100 - num * 2,
-    finish: { x: 100 + num*40, y: 80 + num*20, w: 120, h: 80 },
+    finish: { x: corner.x, y: corner.y, w: 120, h: 80 },
     tools: [
       { name:"clamp", x:140, y:110, w:60, h:16, vx:2+num*0.3, vy:0 },
       { name:"sander", x:560, y:320, w:80, h:18, vx:-2.5-num*0.2, vy:0 },
