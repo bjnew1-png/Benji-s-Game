@@ -69,13 +69,14 @@ let demon = {
 let objects = [];
 
 /* ---------------------------------------------------
-   RANDOM 1–3 SPIKES + PLATFORM IN FRONT
+   RANDOM SPIKE ROWS (1–3 long) + PLATFORM IN FRONT
 --------------------------------------------------- */
 
 function addSpikeRow(startX) {
     const count = Math.floor(Math.random() * 3) + 1;
     const offset = Math.floor(Math.random() * 200);
 
+    // Ground spikes
     for (let i = 0; i < count; i++) {
         objects.push({
             x: startX + offset + i * 40,
@@ -86,7 +87,7 @@ function addSpikeRow(startX) {
         });
     }
 
-    // PLATFORM IN FRONT OF SPIKES
+    // Platform placed IN FRONT of spike row
     addPlatformWithSpikes(startX + offset + count * 40 + 120);
 }
 
@@ -94,6 +95,7 @@ function addPlatformWithSpikes(startX) {
     const platformY = Math.floor(Math.random() * 3) * 40 + 200;
     const platformWidth = Math.floor(Math.random() * 4) + 2;
 
+    // Platform blocks
     for (let i = 0; i < platformWidth; i++) {
         objects.push({
             x: startX + i * 40,
@@ -104,6 +106,7 @@ function addPlatformWithSpikes(startX) {
         });
     }
 
+    // Spikes on top of platform
     const spikeCount = Math.floor(Math.random() * 3) + 1;
     for (let i = 0; i < spikeCount; i++) {
         objects.push({
@@ -116,7 +119,7 @@ function addPlatformWithSpikes(startX) {
     }
 }
 
-// PLACE RANDOM SPIKES + PLATFORMS
+// PLACE LEVEL OBJECTS
 addSpikeRow(1500);
 addSpikeRow(2000);
 addSpikeRow(2500);
@@ -178,6 +181,7 @@ function loop() {
             ctx.fillStyle = "#888";
             ctx.fillRect(o.x - camX, o.y, o.w, o.h);
 
+            // Platform collision
             if (player.x < o.x + o.w &&
                 player.x + player.w > o.x &&
                 player.y + player.h > o.y &&
@@ -192,17 +196,29 @@ function loop() {
             return;
         }
 
-        // SPIKES (triangle)
+        // SPIKES (white tip + red base)
         if (o.type === "spike") {
-            ctx.fillStyle = "#ff0000";
+
+            // White tip
+            ctx.fillStyle = "#ffffff";
             ctx.beginPath();
             ctx.moveTo(o.x - camX + o.w/2, o.y);
-            ctx.lineTo(o.x - camX, o.y + o.h);
-            ctx.lineTo(o.x - camX + o.w, o.y + o.h);
+            ctx.lineTo(o.x - camX + o.w*0.25, o.y + o.h*0.4);
+            ctx.lineTo(o.x - camX + o.w*0.75, o.y + o.h*0.4);
             ctx.closePath();
             ctx.fill();
 
-            // FIXED COLLISION — only die when touching triangle
+            // Red base
+            ctx.fillStyle = "#ff0000";
+            ctx.beginPath();
+            ctx.moveTo(o.x - camX + o.w*0.25, o.y + o.h*0.4);
+            ctx.lineTo(o.x - camX, o.y + o.h);
+            ctx.lineTo(o.x - camX + o.w, o.y + o.h);
+            ctx.lineTo(o.x - camX + o.w*0.75, o.y + o.h*0.4);
+            ctx.closePath();
+            ctx.fill();
+
+            // Collision — only die when touching triangle
             if (player.x < o.x + o.w &&
                 player.x + player.w > o.x &&
                 player.y + player.h > o.y &&
