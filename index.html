@@ -119,11 +119,20 @@ function loop() {
             player.y < o.y + o.h &&
             player.y + player.h > o.y) {
 
-            if (o.type === "spike") end("You hit a spike!");
+            if (o.type === "spike") {
+                demon.speed += 0.1;   // demon gets faster by .1 ONLY on spikes
+                end("You hit a spike!");
+            }
+
             if (o.type === "break") speed = 1.5;
             if (o.type === "jumpPad") player.dy = -14;
             if (o.type === "flipPad") player.dy = -8;
-            if (o.type === "slowGate") demon.speed += 0.8;
+
+            // slowGate NO LONGER boosts demon
+            if (o.type === "slowGate") {
+                // removed demon.speed += 0.8;
+            }
+
             if (o.type === "shadow") demon.visible = false;
             if (o.type === "boost") player.x += 40;
             if (o.type === "collapse") speed = 1.8;
@@ -132,7 +141,7 @@ function loop() {
 
     // Demon catches player
     if (demon.x + demon.w >= player.x) {
-        end("Cube Demon caught you!");
+        end(you suck Benji;
     }
 
     requestAnimationFrame(loop);
