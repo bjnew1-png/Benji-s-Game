@@ -29,26 +29,25 @@ let player = {
 
 // CHASER (Cube Demon)
 let demon = {
-    x: -20,     // behind player
+    x: -20,
     y: 300,
     w: 40,
     h: 40,
-    speed: 2    // base speed
+    speed: 2
 };
 
 // LEVEL OBJECTS
 let objects = [
     {x:300, y:330, w:40, h:40, type:"spike"},
-    {x:450, y:330, w:40, h:40, type:"break"},
-    {x:650, y:330, w:40, h:10, type:"jumpPad"},
-    {x:800, y:330, w:40, h:10, type:"flipPad"},
-    {x:950, y:330, w:40, h:80, type:"slowGate"},
-    {x:1100, y:330, w:80, h:80, type:"shadow"},
-    {x:1300, y:330, w:40, h:10, type:"boost"},
-    {x:1500, y:330, w:80, h:10, type:"moving"},
+    {x:450, y:330, w:40, h:40, type:"spike"},
+    {x:650, y:330, w:40, h:40, type:"spike"},
+    {x:800, y:330, w:40, h:40, type:"spike"},
+    {x:950, y:330, w:40, h:40, type:"spike"},
+    {x:1100, y:330, w:40, h:40, type:"spike"},
+    {x:1300, y:330, w:40, h:40, type:"spike"},
+    {x:1500, y:330, w:40, h:40, type:"spike"},
     {x:1700, y:330, w:40, h:40, type:"spike"},
-    {x:1800, y:330, w:40, h:40, type:"spike"},
-    {x:2000, y:330, w:40, h:40, type:"collapse"},
+    {x:2000, y:330, w:40, h:40, type:"spike"}
 ];
 
 // GAME SPEED
@@ -76,35 +75,27 @@ function loop() {
         player.grounded = true;
     }
 
-    // Player moves forward instead of level scrolling
+    // Player moves forward
     player.x += speed;
 
     // Demon chases player
     demon.x += demon.speed;
 
+    // CAMERA FOLLOW
+    let camX = player.x - 100;
+
     // Draw player
     ctx.fillStyle = "#4af";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillRect(player.x - camX, player.y, player.w, player.h);
 
     // Draw demon
     ctx.fillStyle = "#f33";
-    ctx.fillRect(demon.x, demon.y, demon.w, demon.h);
+    ctx.fillRect(demon.x - camX, demon.y, demon.w, demon.h);
 
     // Draw objects + interactions
     objects.forEach(o => {
-        ctx.fillStyle = "#fff";
-
-        if (o.type === "spike") ctx.fillStyle = "#f00";
-        if (o.type === "break") ctx.fillStyle = "#a52";
-        if (o.type === "jumpPad") ctx.fillStyle = "#0f0";
-        if (o.type === "flipPad") ctx.fillStyle = "#0ff";
-        if (o.type === "slowGate") ctx.fillStyle = "#ff0";
-        if (o.type === "shadow") ctx.fillStyle = "#333";
-        if (o.type === "boost") ctx.fillStyle = "#0f8";
-        if (o.type === "moving") ctx.fillStyle = "#888";
-        if (o.type === "collapse") ctx.fillStyle = "#555";
-
-        ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.fillStyle = "#f00"; // spikes always red
+        ctx.fillRect(o.x - camX, o.y, o.w, o.h);
 
         // Collision
         if (player.x < o.x + o.w &&
@@ -112,25 +103,19 @@ function loop() {
             player.y < o.y + o.h &&
             player.y + player.h > o.y) {
 
-            if (o.type === "spike") {
-                demon.speed += 0.1;   // demon gets faster by .1 ONLY on spikes
-                end("You hit a spike!");
-            }
-
-            if (o.type === "break") speed = 1.5;
-            if (o.type === "jumpPad") player.dy = -14;
-            if (o.type === "flipPad") player.dy = -8;
-
-            // slowGate no longer boosts demon
-            if (o.type === "shadow") demon.visible = false;
-            if (o.type === "boost") player.x += 40;
-            if (o.type === "collapse") speed = 1.8;
+            demon.speed += 0.1;   // demon gets faster by .1 ONLY on spikes
+            end("You hit a spike!");
         }
     });
 
     // Demon catches player
     if (demon.x + demon.w >= player.x) {
         end("Cube Demon caught you!");
+    }
+
+    // Restart when player reaches screen edge
+    if (player.x - camX >= canvas.width - player.w) {
+        end("You reached the edge!");
     }
 
     requestAnimationFrame(loop);
