@@ -195,22 +195,54 @@ function loop() {
 
     objects.forEach(o => {
 
-        /* PLATFORM — KILLS YOU */
+        /* ---------------------------------------------------
+           PLATFORM COLLISION — NEW RULES
+           ✔ Stand on top
+           ✔ Die if you hit bottom
+           ✔ Die if you hit sides
+        --------------------------------------------------- */
         if (o.type === "platform") {
             ctx.fillStyle = "#888";
             ctx.fillRect(o.x - camX, o.y, o.w, o.h);
 
-            if (player.x < o.x + o.w &&
-                player.x + player.w > o.x &&
-                player.y + player.h > o.y &&
-                player.y < o.y + o.h) {
+            const px = player.x;
+            const py = player.y;
+            const pw = player.w;
+            const ph = player.h;
+
+            const ox = o.x;
+            const oy = o.y;
+            const ow = o.w;
+            const oh = o.h;
+
+            // LAND ON TOP (safe)
+            if (px < ox + ow &&
+                px + pw > ox &&
+                py + ph > oy &&
+                py + ph < oy + 20 &&
+                player.dy > 0) {
+
+                player.y = oy - ph;
+                player.dy = 0;
+                player.grounded = true;
+                return;
+            }
+
+            // HIT BOTTOM OR SIDES (die)
+            if (px < ox + ow &&
+                px + pw > ox &&
+                py < oy + oh &&
+                py + ph > oy) {
+
                 restartLevel();
             }
 
             return;
         }
 
-        /* SPIKES — WHITE TIP + RED BASE */
+        /* ---------------------------------------------------
+           SPIKES — WHITE TIP + RED BASE
+        --------------------------------------------------- */
         if (o.type === "spike") {
 
             ctx.fillStyle = "#ffffff";
@@ -240,7 +272,9 @@ function loop() {
             return;
         }
 
-        /* FINISH LINE */
+        /* ---------------------------------------------------
+           FINISH LINE
+        --------------------------------------------------- */
         if (o.type === "finish") ctx.fillStyle = "#fff";
 
         ctx.fillRect(o.x - camX, o.y, o.w, o.h);
