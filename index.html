@@ -67,41 +67,28 @@ let demon = {
     speed: 2
 };
 
-// DEATH ANIMATION
-let dying = false;
-let deathTimer = 0;
-
 // OBJECT LIST
 let objects = [];
 
 /* ---------------------------------------------------
-   RANDOM 3‑SPIKE‑TALL ROW GENERATOR (ONE SECTION)
+   RANDOM 2‑SPIKE‑LONG, 1‑SPIKE‑HIGH ROWS
 --------------------------------------------------- */
 
-function addThreeTallSpikeRow(startX) {
-    const heights = [330, 290, 250]; // always 3 tall
-    const columns = Math.floor(Math.random() * 5) + 2; // 2–6 columns
+function addTwoSpikeRow(startX) {
+    const y = 330; // ground height
+    const offset = Math.floor(Math.random() * 300); // random spacing
 
-    for (let i = 0; i < columns; i++) {
-        for (let j = 0; j < 3; j++) {
-            objects.push({
-                x: startX + i * 40,
-                y: heights[j],
-                w: 40,
-                h: 40,
-                type: "spike"
-            });
-        }
-    }
+    objects.push({ x: startX + offset,     y, w: 40, h: 40, type: "spike" });
+    objects.push({ x: startX + offset + 40, y, w: 40, h: 40, type: "spike" });
 }
 
-// PLACE RANDOM 3‑SPIKE‑TALL ROWS
-addThreeTallSpikeRow(1500);
-addThreeTallSpikeRow(2000);
-addThreeTallSpikeRow(2500);
-addThreeTallSpikeRow(3000);
-addThreeTallSpikeRow(3500);
-addThreeTallSpikeRow(4000);
+// PLACE MULTIPLE RANDOM ROWS
+addTwoSpikeRow(1500);
+addTwoSpikeRow(2000);
+addTwoSpikeRow(2500);
+addTwoSpikeRow(3000);
+addTwoSpikeRow(3500);
+addTwoSpikeRow(4000);
 
 // FINISH LINE
 objects.push({ x: 4500, y: 250, w: 20, h: 150, type: "finish" });
@@ -112,7 +99,7 @@ objects.push({ x: 4500, y: 250, w: 20, h: 150, type: "finish" });
 
 document.addEventListener("keydown", (e) => {
     if (e.code === "Space" && player.grounded) {
-        player.dy = -10;
+        player.dy = -14;   // HIGHER JUMP
         player.grounded = false;
     }
 });
@@ -123,38 +110,10 @@ document.addEventListener("keydown", (e) => {
 
 function loop() {
 
-    // DEATH ANIMATION
-    if (dying) {
-        deathTimer++;
-
-        let shake = Math.sin(deathTimer * 0.5) * 10;
-        let shrink = Math.max(0, 30 - deathTimer);
-
-        ctx.save();
-        ctx.translate(shake, 0);
-
-        ctx.fillStyle = "#ff0000";
-        ctx.fillRect(
-            player.x - (player.x - 100) - shrink/2,
-            player.y + shrink/2,
-            shrink,
-            shrink
-        );
-
-        ctx.restore();
-
-        if (deathTimer > 30) {
-            location.reload();
-        }
-
-        requestAnimationFrame(loop);
-        return;
-    }
-
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     // Physics
-    player.dy += 0.5;
+    player.dy += 0.4;   // LONGER JUMP (slower fall)
     player.y += player.dy;
 
     if (player.y >= 300) {
@@ -226,8 +185,7 @@ function loop() {
 }
 
 function end() {
-    dying = true;
-    deathTimer = 0;
+    location.reload(); // INSTANT RESTART, NO ANIMATION
 }
 
 loop();
