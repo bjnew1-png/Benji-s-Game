@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WoodWorkChaos – Complex Maze (Clear Walls)</title>
+<title>WoodWorkChaos – Complex Maze (Fixed)</title>
 <style>
   body {
     margin:0;
@@ -29,13 +29,13 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// PLAYER
-let player = { x:120, y:120, w:32, h:48, vx:0, vy:0 };
+// ⭐ SMALLER PLAYER (fits through gaps)
+let player = { x:120, y:120, w:22, h:32, vx:0, vy:0 };
 
-// FINISH IN MIDDLE
+// ⭐ FINISH IN MIDDLE (now reachable)
 const finishZone = { x:560, y:310, w:80, h:80 };
 
-// COMPLEX MAZE WALLS (SOLID, NEW COLOR)
+// ⭐ COMPLEX MAZE WALLS (solid, dark color)
 const walls = [
   // Outer border
   {x:80, y:80, w:1040, h:20},
@@ -68,11 +68,13 @@ const walls = [
   {x:520, y:380, w:20,  h:220},
   {x:860, y:380, w:20,  h:220},
 
-  // Center ring around finish
+  // ⭐ CENTER RING — OPENED so finish is reachable
   {x:520, y:320, w:20,  h:160},
   {x:640, y:320, w:20,  h:160},
-  {x:520, y:320, w:140, h:20},
-  {x:520, y:460, w:140, h:20},
+
+  // OPEN TOP AND BOTTOM GAPS
+  // Removed: {x:520, y:320, w:140, h:20}
+  // Removed: {x:520, y:460, w:140, h:20}
 
   // Dead ends
   {x:260, y:460, w:200, h:20},
@@ -127,8 +129,8 @@ function draw(){
   ctx.fillStyle = "#d9b47a";
   ctx.fillRect(80,80,1040,520);
 
-  // Maze walls (NEW COLOR)
-  ctx.fillStyle = "#3b2a18";  // dark brown walls
+  // Maze walls (dark brown)
+  ctx.fillStyle = "#3b2a18";
   for(const wall of walls){
     ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
   }
@@ -140,7 +142,7 @@ function draw(){
   ctx.font = "22px sans-serif";
   ctx.fillText("FINISH", finishZone.x + 10, finishZone.y + finishZone.h/2);
 
-  // Player
+  // ⭐ Smaller player
   ctx.fillStyle = "#ffcc99";
   ctx.fillRect(player.x, player.y, player.w, player.h);
 }
