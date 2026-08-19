@@ -1,148 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Cube Dash</title>
-<style>
-    body { margin:0; background:#111; overflow:hidden; }
-    canvas { background:#222; display:block; margin:0 auto; }
-</style>
-</head>
-<body>
+// Draw objects
+objects.forEach(o => {
 
-<!-- LOADING SCREEN -->
-<div id="loadingScreen">
-    <h1>Cube Dash</h1>
-</div>
+    // VISIBLE TRIANGLE SPIKES
+    if (o.type === "spike") {
+        ctx.fillStyle = "#ff0000";
+        ctx.beginPath();
+        ctx.moveTo(o.x - camX + o.w/2, o.y);        // top
+        ctx.lineTo(o.x - camX, o.y + o.h);          // bottom left
+        ctx.lineTo(o.x - camX + o.w, o.y + o.h);    // bottom right
+        ctx.closePath();
+        ctx.fill();
 
-<canvas id="game"></canvas>
+        // Spike collision
+        if (player.x < o.x + o.w &&
+            player.x + player.w > o.x &&
+            player.y + player.h > o.y) {
+            demon.speed += 0.1;
+            end("You hit a spike!");
+        }
 
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-canvas.width = 900;
-canvas.height = 400;
-
-// LOADING SCREEN FADE
-setTimeout(() => {
-    const load = document.getElementById("loadingScreen");
-    load.style.opacity = 0;
-    setTimeout(() => load.style.display = "none", 1000);
-}, 2000);
-
-// PLAYER
-let player = {
-    x: 100,
-    y: 300,
-    w: 30,
-    h: 30,
-    dy: 0,
-    grounded: true
-};
-
-// DEMON
-let demon = {
-    x: -20,
-    y: 300,
-    w: 40,
-    h: 40,
-    speed: 2
-};
-
-// OBJECTS
-let objects = [
-    {x:300, y:330, w:40, h:40, type:"spike"},
-    {x:450, y:330, w:40, h:40, type:"spike"},
-    {x:650, y:330, w:40, h:40, type:"spike"},
-    {x:800, y:330, w:40, h:40, type:"spike"},
-    {x:950, y:330, w:40, h:40, type:"spike"},
-    {x:1100, y:330, w:40, h:40, type:"spike"},
-    {x:1300, y:330, w:40, h:40, type:"spike"},
-    {x:1500, y:330, w:40, h:40, type:"spike"},
-    {x:1700, y:330, w:40, h:40, type:"spike"},
-    {x:2000, y:330, w:40, h:40, type:"spike"},
+        return; // skip rectangle drawing
+    }
 
     // FINISH LINE
-    {x:2300, y:250, w:20, h:150, type:"finish"}
-];
+    if (o.type === "finish") ctx.fillStyle = "#fff";
 
-let speed = 2;
+    ctx.fillRect(o.x - camX, o.y, o.w, o.h);
 
-// INPUT
-document.addEventListener("keydown", (e) => {
-    if (e.code === "Space" && player.grounded) {
-        player.dy = -10;
-        player.grounded = false;
-    }
-});
-
-// GAME LOOP
-function loop() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    // Physics
-    player.dy += 0.5;
-    player.y += player.dy;
-
-    if (player.y >= 300) {
-        player.y = 300;
-        player.dy = 0;
-        player.grounded = true;
-    }
-
-    // Movement
-    player.x += speed;
-    demon.x += demon.speed;
-
-    // Camera
-    let camX = player.x - 100;
-
-    // Draw player
-    ctx.fillStyle = "#4af";
-    ctx.fillRect(player.x - camX, player.y, player.w, player.h);
-
-    // Draw demon
-    ctx.fillStyle = "#f33";
-    ctx.fillRect(demon.x - camX, demon.y, demon.w, demon.h);
-
-    // Draw objects
-    objects.forEach(o => {
-        if (o.type === "spike") ctx.fillStyle = "#f00";
-        if (o.type === "finish") ctx.fillStyle = "#fff";
-
-        ctx.fillRect(o.x - camX, o.y, o.w, o.h);
-
-        // Collision
+    // Finish collision
+    if (o.type === "finish") {
         if (player.x < o.x + o.w &&
             player.x + player.w > o.x &&
             player.y < o.y + o.h &&
             player.y + player.h > o.y) {
-
-            if (o.type === "spike") {
-                demon.speed += 0.1;
-                end("You hit a spike!");
-            }
-
-            if (o.type === "finish") {
-                end("You Win!");
-            }
+            end("You Win!");
         }
-    });
-
-    // Demon catches player
-    if (demon.x + demon.w >= player.x) {
-        end("Cube Demon caught you!");
     }
-
-    requestAnimationFrame(loop);
-}
-
-function end(msg) {
-    alert(msg);
-    location.reload();
-}
-
-loop();
-</script>
-</body>
-</html>
+});
