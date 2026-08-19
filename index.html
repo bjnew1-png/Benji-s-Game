@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Woodshop Warrior – Skins + Damage Cube + More Levels</title>
+<title>Woodshop Warrior – Updated Speed + Cube Damage Fix</title>
 <style>
   body {
     margin:0;
@@ -137,7 +137,9 @@ function update(dt){
     win = false;
   }
 
-  const speed = 240;
+  // ⭐ PLAYER FASTER
+  const speed = 300;
+
   player.vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
   player.vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
 
@@ -150,12 +152,12 @@ function update(dt){
   if(player.y < bounds.minY) player.y = bounds.minY;
   if(player.y + player.h > bounds.maxY) player.y = bounds.maxY - player.h;
 
-  // FOLLOWER CUBE DAMAGE
-  followerCube.x += (player.x - followerCube.x) * 0.05;
-  followerCube.y += (player.y - followerCube.y) * 0.05;
+  // ⭐ CUBE SLOWER + LESS DAMAGE
+  followerCube.x += (player.x - followerCube.x) * 0.03;
+  followerCube.y += (player.y - followerCube.y) * 0.03;
 
   if(collide(player, followerCube)){
-    health -= 5;
+    health -= 2; // less damage
   }
 
   // TOOLS
