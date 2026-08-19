@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WoodWorkChaos – Maze Edition</title>
+<title>WoodWorkChaos – Complex Maze (Clear Walls)</title>
 <style>
   body {
     margin:0;
@@ -14,93 +14,36 @@
     color:white;
   }
   canvas {
-    background:linear-gradient(#f7e3c2, #e0c08f);
+    background:#d9b47a; /* light wood floor */
     box-shadow:0 0 35px rgba(0,0,0,0.8);
     border:4px solid #4a2b12;
     border-radius:10px;
-    display:none;
-  }
-  #loadingScreen {
-    position:absolute;
-    top:0; left:0;
-    width:100%; height:100%;
-    background:#0f0f0f;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    animation: fadeIn 1.5s ease-out;
-  }
-  #title {
-    font-size:80px;
-    font-weight:bold;
-    letter-spacing:4px;
-    color:#ffcc66;
-    text-shadow:0 0 20px #ff9900, 0 0 40px #ff6600;
-    margin-bottom:40px;
-  }
-  #subtitle {
-    font-size:28px;
-    opacity:0.8;
-  }
-  @keyframes fadeIn {
-    from { opacity:0; }
-    to { opacity:1; }
   }
 </style>
 </head>
 <body>
 
-<div id="loadingScreen">
-  <div id="title">WoodWorkChaos</div>
-  <div id="subtitle">Press any key to enter the maze</div>
-</div>
-
 <canvas id="game" width="1200" height="700"></canvas>
 
 <script>
-let gameStarted = false;
-
-window.addEventListener("keydown", () => {
-  if(!gameStarted){
-    document.getElementById("loadingScreen").style.display = "none";
-    document.getElementById("game").style.display = "block";
-    gameStarted = true;
-    startGame();
-  }
-});
-
-function startGame(){
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 // PLAYER
 let player = { x:120, y:120, w:32, h:48, vx:0, vy:0 };
 
-// SKINS
-const skins = ["#ffcc99", "#99ccff", "#ff9999"];
-let currentSkin = 0;
-
-// HEALTH + TIMER
-let health = 100;
-let timeLeft = 120;
-let last = performance.now();
-let keys = {};
-let gameOver = false;
-let win = false;
-
 // FINISH IN MIDDLE
 const finishZone = { x:560, y:310, w:80, h:80 };
 
-// MAZE WALLS (solid)
+// COMPLEX MAZE WALLS (SOLID, NEW COLOR)
 const walls = [
-  // outer frame
+  // Outer border
   {x:80, y:80, w:1040, h:20},
   {x:80, y:80, w:20,   h:540},
   {x:1100, y:80, w:20, h:540},
   {x:80, y:600, w:1040, h:20},
 
-  // inner maze segments
+  // Maze structure
   {x:160, y:140, w:300, h:20},
   {x:160, y:140, w:20,  h:200},
   {x:440, y:140, w:20,  h:200},
@@ -125,84 +68,25 @@ const walls = [
   {x:520, y:380, w:20,  h:220},
   {x:860, y:380, w:20,  h:220},
 
-  // paths around center
+  // Center ring around finish
   {x:520, y:320, w:20,  h:160},
   {x:640, y:320, w:20,  h:160},
   {x:520, y:320, w:140, h:20},
   {x:520, y:460, w:140, h:20},
 
-  // extra dead ends
+  // Dead ends
   {x:260, y:460, w:200, h:20},
   {x:260, y:520, w:20,  h:80},
   {x:760, y:460, w:200, h:20},
   {x:940, y:460, w:20,  h:80}
 ];
 
-window.addEventListener("keydown", e => {
-  keys[e.key] = true;
-
-  if(e.key === "1") currentSkin = 0;
-  if(e.key === "2") currentSkin = 1;
-  if(e.key === "3") currentSkin = 2;
-
-  if(gameOver && e.key === "Enter"){
-    // restart maze
-    player.x = 120;
-    player.y = 120;
-    health = 100;
-    timeLeft = 120;
-    gameOver = false;
-    win = false;
-  }
-});
-
+// INPUT
+let keys = {};
+window.addEventListener("keydown", e => keys[e.key] = true);
 window.addEventListener("keyup", e => keys[e.key] = false);
 
-function update(dt){
-  if(gameOver) return;
-
-  timeLeft -= dt;
-  if(timeLeft <= 0){
-    gameOver = true;
-    win = false;
-  }
-
-  const speed = 260;
-  let vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
-  let vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
-
-  // try move X
-  let nextX = player.x + vx * dt;
-  let nextY = player.y;
-
-  if(!hitsWall(nextX, nextY, player.w, player.h)){
-    player.x = nextX;
-  } else {
-    // bump = tiny health loss
-    health -= 0.5;
-  }
-
-  // try move Y
-  nextX = player.x;
-  nextY = player.y + vy * dt;
-
-  if(!hitsWall(nextX, nextY, player.w, player.h)){
-    player.y = nextY;
-  } else {
-    health -= 0.5;
-  }
-
-  if(health <= 0){
-    gameOver = true;
-    win = false;
-  }
-
-  if(collide(player, finishZone)){
-    gameOver = true;
-    win = true;
-  }
-}
-
+// COLLISION CHECK
 function hitsWall(x,y,w,h){
   for(const wall of walls){
     if(x < wall.x + wall.w &&
@@ -215,76 +99,64 @@ function hitsWall(x,y,w,h){
   return false;
 }
 
-function collide(a,b){
-  return a.x < b.x + b.w &&
-         a.x + a.w > b.x &&
-         a.y < b.y + b.h &&
-         a.y + a.h > b.y;
+// UPDATE LOOP
+function update(dt){
+  const speed = 260;
+
+  let vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
+  let vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
+
+  // Try X movement
+  let nextX = player.x + vx * dt;
+  if(!hitsWall(nextX, player.y, player.w, player.h)){
+    player.x = nextX;
+  }
+
+  // Try Y movement
+  let nextY = player.y + vy * dt;
+  if(!hitsWall(player.x, nextY, player.w, player.h)){
+    player.y = nextY;
+  }
 }
 
+// DRAW LOOP
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // background
+  // Maze background (floor)
   ctx.fillStyle = "#d9b47a";
   ctx.fillRect(80,80,1040,520);
 
-  // maze walls
-  ctx.fillStyle = "#5a3b1e";
+  // Maze walls (NEW COLOR)
+  ctx.fillStyle = "#3b2a18";  // dark brown walls
   for(const wall of walls){
     ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
   }
 
-  // finish in middle
+  // Finish zone
   ctx.fillStyle = "#8fd48f";
   ctx.fillRect(finishZone.x, finishZone.y, finishZone.w, finishZone.h);
   ctx.fillStyle = "#1f3f1a";
   ctx.font = "22px sans-serif";
   ctx.fillText("FINISH", finishZone.x + 10, finishZone.y + finishZone.h/2);
 
-  // player
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 12;
-  ctx.fillStyle = skins[currentSkin];
+  // Player
+  ctx.fillStyle = "#ffcc99";
   ctx.fillRect(player.x, player.y, player.w, player.h);
-  ctx.restore();
-
-  // HUD
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "24px sans-serif";
-  ctx.fillText("Health: " + Math.floor(health), 80, 40);
-  ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 320, 40);
-  ctx.fillText("Maze – Finish in the middle", 80, 680);
-
-  if(gameOver){
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    ctx.fillStyle = "#fff";
-    ctx.font = "40px sans-serif";
-    if(win){
-      ctx.fillText("YOU ESCAPED THE WOODWORK CHAOS!", 200, 300);
-      ctx.font = "24px sans-serif";
-      ctx.fillText("Press ENTER to run the maze again.", 320, 350);
-    } else {
-      ctx.fillText("YOU GOT LOST IN THE MAZE!", 260, 300);
-      ctx.font = "24px sans-serif";
-      ctx.fillText("Press ENTER to retry.", 420, 350);
-    }
-  }
 }
 
+// MAIN LOOP
+let last = performance.now();
 function loop(now){
   let dt = (now - last) / 1000;
   last = now;
+
   update(dt);
   draw();
   requestAnimationFrame(loop);
 }
-
 requestAnimationFrame(loop);
-}
 </script>
+
 </body>
 </html>
