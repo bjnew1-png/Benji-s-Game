@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html>
 <head>
-<title>Woodshop Warrior – Multi Level</title>
+<title>Woodshop Warrior – 10 Levels</title>
 <style>
   body {
     margin:0;
@@ -21,7 +21,7 @@
 </style>
 </head>
 <body>
-<canvas id="game" width="800" height="500"></canvas>
+<canvas id="game" width="900" height="550"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
@@ -29,46 +29,29 @@ const ctx = canvas.getContext("2d");
 
 let levelIndex = 0;
 
-const levels = [
-  {
-    name: "Level 1 – Rookie Carpenter",
-    time: 45,
-    rageMax: 100,
-    finish: { x: 640, y: 360, w: 100, h: 80 },
+function makeLevel(num){
+  return {
+    name: "Level " + num,
+    time: 50 - num * 3,
+    rageMax: 100 - num * 2,
+    finish: { x: 100 + num*40, y: 80 + num*20, w: 120, h: 80 },
     tools: [
-      { name:"clamp", x:140, y:110, w:60, h:16, vx:2.0, vy:0 },
-      { name:"sander", x:560, y:320, w:80, h:18, vx:-2.5, vy:0 },
-      { name:"glue", x:380, y:70, w:40, h:40, vx:0, vy:2.0 }
+      { name:"clamp", x:140, y:110, w:60, h:16, vx:2+num*0.3, vy:0 },
+      { name:"sander", x:560, y:320, w:80, h:18, vx:-2.5-num*0.2, vy:0 },
+      { name:"glue", x:380, y:70, w:40, h:40, vx:0, vy:2+num*0.3 },
+      { name:"chisel", x:300, y:380, w:50, h:12, vx:2.2+num*0.2, vy:-1.5-num*0.2 },
+      { name:"mallet", x:500, y:200, w:40, h:40, vx:-2.5-num*0.2, vy:2.5+num*0.2 }
     ]
-  },
-  {
-    name: "Level 2 – Chaos Apprentice",
-    time: 40,
-    rageMax: 90,
-    finish: { x: 80, y: 60, w: 120, h: 70 },
-    tools: [
-      { name:"clamp", x:200, y:140, w:70, h:18, vx:3.0, vy:0 },
-      { name:"sander", x:600, y:340, w:90, h:20, vx:-3.5, vy:0 },
-      { name:"glue", x:420, y:90, w:45, h:45, vx:0, vy:3.0 },
-      { name:"chisel", x:300, y:380, w:50, h:12, vx:2.2, vy:-1.5 }
-    ]
-  },
-  {
-    name: "Level 3 – Workshop Warrior",
-    time: 35,
-    rageMax: 80,
-    finish: { x: 620, y: 80, w: 120, h: 80 },
-    tools: [
-      { name:"clamp", x:160, y:120, w:70, h:18, vx:3.5, vy:0 },
-      { name:"sander", x:620, y:360, w:100, h:22, vx:-4.0, vy:0 },
-      { name:"glue", x:420, y:90, w:45, h:45, vx:0, vy:3.5 },
-      { name:"chisel", x:260, y:380, w:55, h:14, vx:2.8, vy:-2.0 },
-      { name:"mallet", x:500, y:200, w:40, h:40, vx:-2.5, vy:2.5 }
-    ]
-  }
-];
+  };
+}
 
-let project;
+const levels = [];
+for(let i=1;i<=10;i++){
+  levels.push(makeLevel(i));
+}
+
+let player;
+let box;
 let tools;
 let finishZone;
 let rage;
@@ -79,11 +62,14 @@ let gameOver = false;
 let win = false;
 let allCleared = false;
 
-const bounds = { minX:70, minY:60, maxX:730, maxY:430 };
+const bounds = { minX:70, minY:60, maxX:830, maxY:480 };
 
 function startLevel(index){
   const lvl = levels[index];
-  project = { x:380, y:230, w:60, h:80, vx:0, vy:0 };
+
+  player = { x:380, y:230, w:40, h:70, vx:0, vy:0 };
+  box = { x:420, y:260, w:60, h:60 };
+
   tools = JSON.parse(JSON.stringify(lvl.tools));
   finishZone = lvl.finish;
   rage = 0;
@@ -101,7 +87,7 @@ window.addEventListener("keydown", e => {
     if(win && levelIndex < levels.length - 1){
       levelIndex++;
       startLevel(levelIndex);
-    } else if(!win || levelIndex === levels.length - 1){
+    } else {
       levelIndex = 0;
       startLevel(levelIndex);
     }
@@ -118,19 +104,20 @@ function update(dt){
     win = false;
   }
 
-  const speed = 190;
-  project.vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
-  project.vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
+  const speed = 200;
+  player.vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
+  player.vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
 
-  project.x += project.vx * dt;
-  project.y += project.vy * dt;
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
 
-  if(project.x < bounds.minX){ project.x = bounds.minX; rage += 1.5; }
-  if(project.x + project.w > bounds.maxX){ project.x = bounds.maxX - project.w; rage += 1.5; }
-  if(project.y < bounds.minY){ project.y = bounds.minY; rage += 1.5; }
-  if(project.y + project.h > bounds.maxY){ project.y = bounds.maxY - project.h; rage += 1.5; }
+  if(player.x < bounds.minX) player.x = bounds.minX;
+  if(player.x + player.w > bounds.maxX) player.x = bounds.maxX - player.w;
+  if(player.y < bounds.minY) player.y = bounds.minY;
+  if(player.y + player.h > bounds.maxY) player.y = bounds.maxY - player.h;
 
-  project.x += Math.sin(performance.now()/260) * 14 * dt;
+  box.x = player.x + 20;
+  box.y = player.y + 30;
 
   for(let t of tools){
     t.x += t.vx;
@@ -139,10 +126,10 @@ function update(dt){
     if(t.x < bounds.minX || t.x + t.w > bounds.maxX) t.vx *= -1;
     if(t.y < bounds.minY || t.y + t.h > bounds.maxY) t.vy *= -1;
 
-    if(collide(project, t)){
+    if(collide(player, t)){
       rage += 10;
-      project.x += (project.x < t.x ? -30 : 30);
-      project.y += (project.y < t.y ? -30 : 30);
+      player.x += (player.x < t.x ? -30 : 30);
+      player.y += (player.y < t.y ? -30 : 30);
     }
   }
 
@@ -152,7 +139,7 @@ function update(dt){
     win = false;
   }
 
-  if(collide(project, finishZone) && rage < lvl.rageMax){
+  if(collide(player, finishZone) && rage < lvl.rageMax){
     gameOver = true;
     win = true;
     if(levelIndex === levels.length - 1){
@@ -174,12 +161,6 @@ function draw(){
   ctx.fillStyle = "#d9b47a";
   ctx.fillRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
 
-  ctx.fillStyle = "#3b2a18";
-  ctx.fillRect(bounds.minX-10, bounds.minY-10, bounds.maxX-bounds.minX+20, bounds.maxY-bounds.minY+20);
-
-  ctx.fillStyle = "#f0d9b0";
-  ctx.fillRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
-
   ctx.fillStyle = "#8fd48f";
   ctx.fillRect(finishZone.x, finishZone.y, finishZone.w, finishZone.h);
   ctx.fillStyle = "#1f3f1a";
@@ -189,12 +170,12 @@ function draw(){
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.5)";
   ctx.shadowBlur = 12;
-  ctx.fillStyle = "#c48a4a";
-  ctx.fillRect(project.x, project.y, project.w, project.h);
+  ctx.fillStyle = "#ffcc99";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
   ctx.restore();
-  ctx.strokeStyle = "#7a4b1c";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(project.x, project.y, project.w, project.h);
+
+  ctx.fillStyle = "#c48a4a";
+  ctx.fillRect(box.x, box.y, box.w, box.h);
 
   for(let t of tools){
     ctx.save();
@@ -205,7 +186,6 @@ function draw(){
     else if(t.name === "glue") ctx.fillStyle = "#ffd54f";
     else if(t.name === "chisel") ctx.fillStyle = "#c0c0c0";
     else if(t.name === "mallet") ctx.fillStyle = "#5a3b1e";
-    else ctx.fillStyle = "#333";
     ctx.fillRect(t.x, t.y, t.w, t.h);
     ctx.restore();
   }
@@ -214,14 +194,7 @@ function draw(){
   ctx.font = "20px sans-serif";
   ctx.fillText("Rage: " + Math.floor(rage) + "/" + levels[levelIndex].rageMax, 80, 40);
   ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 320, 40);
-  ctx.fillText(levels[levelIndex].name, 80, 470);
-
-  let barX = 80, barY = 50, barW = 220, barH = 10;
-  ctx.fillStyle = "#333";
-  ctx.fillRect(barX, barY, barW, barH);
-  let rageRatio = Math.min(rage / levels[levelIndex].rageMax, 1);
-  ctx.fillStyle = rageRatio < 0.5 ? "#4caf50" : rageRatio < 0.8 ? "#ff9800" : "#f44336";
-  ctx.fillRect(barX, barY, barW * rageRatio, barH);
+  ctx.fillText(levels[levelIndex].name, 80, 520);
 
   if(gameOver){
     ctx.fillStyle = "rgba(0,0,0,0.7)";
@@ -231,18 +204,16 @@ function draw(){
     ctx.font = "32px sans-serif";
     if(win){
       if(allCleared){
-        ctx.fillText("YOU ARE THE WOODSHOP WARRIOR!", 120, 220);
-        ctx.font = "20px sans-serif";
-        ctx.fillText("You cleared all levels without letting rage win.", 160, 260);
+        ctx.fillText("YOU CLEARED ALL 10 LEVELS!", 200, 250);
       } else {
-        ctx.fillText("LEVEL CLEARED!", 260, 220);
+        ctx.fillText("LEVEL CLEARED!", 300, 250);
         ctx.font = "20px sans-serif";
-        ctx.fillText("Press ENTER to tackle the next level.", 210, 260);
+        ctx.fillText("Press ENTER for next level.", 320, 290);
       }
     } else {
-      ctx.fillText("WORKBENCH RAGE OVERLOAD!", 160, 220);
+      ctx.fillText("WORKBENCH RAGE OVERLOAD!", 200, 250);
       ctx.font = "20px sans-serif";
-      ctx.fillText("Press ENTER to retry from Level 1.", 210, 260);
+      ctx.fillText("Press ENTER to restart.", 320, 290);
     }
   }
 }
