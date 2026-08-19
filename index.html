@@ -1,20 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WoodWorkChaos – Complex Maze (Reachable Finish)</title>
+<title>Woodshop Warrior – Updated Speed + Cube Damage Fix</title>
 <style>
   body {
     margin:0;
-    background:#0f0f0f;
+    background:#1b1b1f;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
     font-family:sans-serif;
-    color:white;
   }
   canvas {
-    background:#d9b47a; /* light wood floor */
+    background:linear-gradient(#f7e3c2, #e0c08f);
     box-shadow:0 0 35px rgba(0,0,0,0.8);
     border:4px solid #4a2b12;
     border-radius:10px;
@@ -22,123 +21,267 @@
 </style>
 </head>
 <body>
-
 <canvas id="game" width="1200" height="700"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ⭐ SMALLER PLAYER
-let player = { x:120, y:120, w:20, h:28, vx:0, vy:0 };
+let levelIndex = 0;
 
-// ⭐ FINISH IN MIDDLE (with a real gap)
-const finishZone = { x:560, y:310, w:80, h:80 };
-
-// ⭐ COMPLEX MAZE WALLS (solid, dark color)
-const walls = [
-  // Outer border
-  {x:80, y:80, w:1040, h:20},
-  {x:80, y:80, w:20,   h:540},
-  {x:1100, y:80, w:20, h:540},
-  {x:80, y:600, w:1040, h:20},
-
-  // Complex maze layout
-  {x:160, y:140, w:300, h:20},
-  {x:160, y:140, w:20,  h:260},
-  {x:440, y:140, w:20,  h:260},
-
-  {x:220, y:260, w:240, h:20},
-  {x:220, y:260, w:20,  h:260},
-  {x:440, y:260, w:20,  h:260},
-
-  {x:520, y:140, w:360, h:20},
-  {x:520, y:140, w:20,  h:260},
-  {x:860, y:140, w:20,  h:260},
-
-  {x:580, y:260, w:300, h:20},
-  {x:580, y:260, w:20,  h:260},
-  {x:860, y:260, w:20,  h:260},
-
-  // Lower maze expansion
-  {x:160, y:420, w:300, h:20},
-  {x:160, y:420, w:20,  h:180},
-  {x:440, y:420, w:20,  h:180},
-
-  {x:520, y:420, w:360, h:20},
-  {x:520, y:420, w:20,  h:180},
-  {x:860, y:420, w:20,  h:180},
-
-  // ⭐ CENTER RING — now with a gap on the LEFT
-  {x:640, y:320, w:20,  h:160},  // right pillar
-  {x:520, y:320, w:20,  h:160},  // left pillar
-
-  // ⭐ OPEN GAP to reach finish
-  // Removed top and bottom bars entirely
-
-  // Extra dead ends for complexity
-  {x:260, y:500, w:200, h:20},
-  {x:260, y:540, w:20,  h:60},
-
-  {x:760, y:500, w:200, h:20},
-  {x:940, y:540, w:20,  h:60}
+// FINISH CORNERS
+const corners = [
+  { x:100, y:100 },
+  { x:1000, y:100 },
+  { x:100, y:550 },
+  { x:1000, y:550 }
 ];
 
-// INPUT
-let keys = {};
-window.addEventListener("keydown", e => keys[e.key] = true);
-window.addEventListener("keyup", e => keys[e.key] = false);
+// PLAYER SKINS
+const skins = [
+  "#ffcc99", // default
+  "#99ccff", // blue
+  "#ff9999"  // red
+];
+let currentSkin = 0;
 
-// COLLISION CHECK
-function hitsWall(x,y,w,h){
-  for(const wall of walls){
-    if(x < wall.x + wall.w &&
-       x + w > wall.x &&
-       y < wall.y + wall.h &&
-       y + h > wall.y){
-      return true;
+// MAKE LEVELS
+function makeLevel(num){
+  const corner = corners[num % 4];
+  return {
+    name: "Level " + num,
+    time: 60 - num * 2,
+    healthMax: 100,
+    finish: { x: corner.x, y: corner.y, w: 140, h: 100 },
+    tools: [
+      { name:"clamp", x:200, y:200, w:60, h:16, vx:2+num*0.3, vy:0 },
+      { name:"sander", x:900, y:400, w:80, h:18, vx:-2.5-num*0.2, vy:0 },
+      { name:"glue", x:600, y:150, w:40, h:40, vx:0, vy:2+num*0.3 },
+      { name:"chisel", x:500, y:600, w:50, h:12, vx:2.2+num*0.2, vy:-1.5-num*0.2 },
+      { name:"mallet", x:700, y:300, w:40, h:40, vx:-2.5-num*0.2, vy:2.5+num*0.2 },
+
+      // NEW OBJECTS
+      { name:"sawblade", x:300, y:300, w:50, h:50, vx:3+num*0.2, vy:3+num*0.2 },
+      { name:"paintbucket", x:800, y:200, w:40, h:60, vx:-2-num*0.1, vy:2+num*0.1 },
+      { name:"toolcart", x:400, y:500, w:90, h:40, vx:2+num*0.2, vy:-2-num*0.2 }
+    ]
+  };
+}
+
+const levels = [];
+for(let i=1;i<=15;i++){
+  levels.push(makeLevel(i));
+}
+
+let player;
+let followerCube;
+let tools;
+let finishZone;
+let health;
+let timeLeft;
+let last = performance.now();
+let keys = {};
+let gameOver = false;
+let win = false;
+let allCleared = false;
+
+// BIG MAP
+const bounds = { minX:50, minY:50, maxX:1150, maxY:650 };
+
+function startLevel(index){
+  const lvl = levels[index];
+
+  player = { x:600, y:350, w:40, h:70, vx:0, vy:0 };
+
+  followerCube = { x:player.x + 80, y:player.y + 40, w:50, h:50 };
+
+  tools = JSON.parse(JSON.stringify(lvl.tools));
+  finishZone = lvl.finish;
+  health = lvl.healthMax;
+  timeLeft = lvl.time;
+  gameOver = false;
+  win = false;
+  allCleared = false;
+}
+
+startLevel(levelIndex);
+
+// INPUT
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+
+  // SKIN SWITCHING
+  if(e.key === "1") currentSkin = 0;
+  if(e.key === "2") currentSkin = 1;
+  if(e.key === "3") currentSkin = 2;
+
+  if(gameOver && e.key === "Enter"){
+    if(win && levelIndex < levels.length - 1){
+      levelIndex++;
+      startLevel(levelIndex);
+    } else {
+      levelIndex = 0;
+      startLevel(levelIndex);
     }
   }
-  return false;
-}
+});
+window.addEventListener("keyup", e => keys[e.key] = false);
 
-// UPDATE LOOP
+// UPDATE
 function update(dt){
-  const speed = 260;
+  if(gameOver) return;
 
-  let vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
-  let vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
-
-  // Try X movement
-  let nextX = player.x + vx * dt;
-  if(!hitsWall(nextX, player.y, player.w, player.h)){
-    player.x = nextX;
+  timeLeft -= dt;
+  if(timeLeft <= 0){
+    gameOver = true;
+    win = false;
   }
 
-  // Try Y movement
-  let nextY = player.y + vy * dt;
-  if(!hitsWall(player.x, nextY, player.w, player.h)){
-    player.y = nextY;
+  // ⭐ PLAYER FASTER
+  const speed = 300;
+
+  player.vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
+  player.vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
+
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+
+  // LIMITS
+  if(player.x < bounds.minX) player.x = bounds.minX;
+  if(player.x + player.w > bounds.maxX) player.x = bounds.maxX - player.w;
+  if(player.y < bounds.minY) player.y = bounds.minY;
+  if(player.y + player.h > bounds.maxY) player.y = bounds.maxY - player.h;
+
+  // ⭐ CUBE SLOWER + LESS DAMAGE
+  followerCube.x += (player.x - followerCube.x) * 0.03;
+  followerCube.y += (player.y - followerCube.y) * 0.03;
+
+  if(collide(player, followerCube)){
+    health -= 2; // less damage
+  }
+
+  // TOOLS
+  for(let t of tools){
+    t.x += t.vx;
+    t.y += t.vy;
+
+    if(t.x < bounds.minX || t.x + t.w > bounds.maxX) t.vx *= -1;
+    if(t.y < bounds.minY || t.y + t.h > bounds.maxY) t.vy *= -1;
+
+    if(collide(player, t)){
+      health -= 10;
+      player.x += (player.x < t.x ? -40 : 40);
+      player.y += (player.y < t.y ? -40 : 40);
+    }
+  }
+
+  if(health <= 0){
+    gameOver = true;
+    win = false;
+  }
+
+  if(collide(player, finishZone)){
+    gameOver = true;
+    win = true;
+    if(levelIndex === levels.length - 1){
+      allCleared = true;
+    }
   }
 }
 
-// DRAW LOOP
+// COLLISION
+function collide(a,b){
+  return a.x < b.x + b.w &&
+         a.x + a.w > b.x &&
+         a.y < b.y + b.h &&
+         a.y + a.h > b.y;
+}
+
+// DRAW
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Maze background (floor)
+  // MAP
   ctx.fillStyle = "#d9b47a";
-  ctx.fillRect(80,80,1040,520);
+  ctx.fillRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
 
-  // Maze walls (dark brown)
-  ctx.fillStyle = "#3b2a18";
-  for(const wall of walls){
-    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
-  }
-
-  // Finish zone (reachable now)
+  // FINISH
   ctx.fillStyle = "#8fd48f";
   ctx.fillRect(finishZone.x, finishZone.y, finishZone.w, finishZone.h);
   ctx.fillStyle = "#1f3f1a";
   ctx.font = "22px sans-serif";
-  ctx.fillText("FINISH", finishZone.x + 10, finish
+  ctx.fillText("FINISH", finishZone.x + 30, finishZone.y + finishZone.h/2);
+
+  // PLAYER (SKIN)
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = skins[currentSkin];
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.restore();
+
+  // FOLLOWER CUBE
+  ctx.fillStyle = "#4a90e2";
+  ctx.fillRect(followerCube.x, followerCube.y, followerCube.w, followerCube.h);
+
+  // TOOLS + OBJECTS
+  for(let t of tools){
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = 8;
+
+    if(t.name === "clamp") ctx.fillStyle = "#b00000";
+    else if(t.name === "sander") ctx.fillStyle = "#444";
+    else if(t.name === "glue") ctx.fillStyle = "#ffd54f";
+    else if(t.name === "chisel") ctx.fillStyle = "#c0c0c0";
+    else if(t.name === "mallet") ctx.fillStyle = "#5a3b1e";
+    else if(t.name === "sawblade") ctx.fillStyle = "#999";
+    else if(t.name === "paintbucket") ctx.fillStyle = "#3366ff";
+    else if(t.name === "toolcart") ctx.fillStyle = "#663300";
+
+    ctx.fillRect(t.x, t.y, t.w, t.h);
+    ctx.restore();
+  }
+
+  // HUD
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "24px sans-serif";
+  ctx.fillText("Health: " + Math.floor(health), 80, 40);
+  ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 350, 40);
+  ctx.fillText(levels[levelIndex].name, 80, 680);
+
+  // GAME OVER
+  if(gameOver){
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "40px sans-serif";
+    if(win){
+      if(allCleared){
+        ctx.fillText("YOU BEAT ALL 15 LEVELS!", 350, 300);
+      } else {
+        ctx.fillText("LEVEL COMPLETE!", 420, 300);
+        ctx.font = "24px sans-serif";
+        ctx.fillText("Press ENTER for next level.", 450, 350);
+      }
+    } else {
+      ctx.fillText("YOU DIED!", 520, 300);
+      ctx.font = "24px sans-serif";
+      ctx.fillText("Press ENTER to restart.", 500, 350);
+    }
+  }
+}
+
+function loop(now){
+  let dt = (now - last) / 1000;
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
