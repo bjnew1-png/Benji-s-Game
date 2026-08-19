@@ -37,7 +37,7 @@ const ctx = canvas.getContext("2d");
 canvas.width = 900;
 canvas.height = 400;
 
-// ⭐ FIXED LOADING SCREEN — ALWAYS FADES OUT
+// LOADING SCREEN FIX
 window.onload = () => {
     setTimeout(() => {
         const load = document.getElementById("loadingScreen");
@@ -49,7 +49,7 @@ window.onload = () => {
 // PLAYER
 let player = {
     x: 100,
-    y: 330,   // SAME HEIGHT AS SPIKES
+    y: 330,
     w: 30,
     h: 30,
     dy: 0,
@@ -69,11 +69,11 @@ let demon = {
 let objects = [];
 
 /* ---------------------------------------------------
-   RANDOM 1–3 SPIKES IN A ROW + PLATFORMS WITH SPIKES
+   RANDOM 1–3 SPIKES + PLATFORM IN FRONT
 --------------------------------------------------- */
 
 function addSpikeRow(startX) {
-    const count = Math.floor(Math.random() * 3) + 1; // 1–3 spikes
+    const count = Math.floor(Math.random() * 3) + 1;
     const offset = Math.floor(Math.random() * 200);
 
     for (let i = 0; i < count; i++) {
@@ -85,13 +85,15 @@ function addSpikeRow(startX) {
             type: "spike"
         });
     }
+
+    // PLATFORM IN FRONT OF SPIKES
+    addPlatformWithSpikes(startX + offset + count * 40 + 120);
 }
 
 function addPlatformWithSpikes(startX) {
-    const platformY = Math.floor(Math.random() * 3) * 40 + 200; // 200–280 height
-    const platformWidth = Math.floor(Math.random() * 4) + 2; // 2–5 blocks
+    const platformY = Math.floor(Math.random() * 3) * 40 + 200;
+    const platformWidth = Math.floor(Math.random() * 4) + 2;
 
-    // Platform blocks
     for (let i = 0; i < platformWidth; i++) {
         objects.push({
             x: startX + i * 40,
@@ -102,8 +104,7 @@ function addPlatformWithSpikes(startX) {
         });
     }
 
-    // Spikes on top of platform
-    const spikeCount = Math.floor(Math.random() * 3) + 1; // 1–3 spikes
+    const spikeCount = Math.floor(Math.random() * 3) + 1;
     for (let i = 0; i < spikeCount; i++) {
         objects.push({
             x: startX + i * 40,
@@ -117,12 +118,11 @@ function addPlatformWithSpikes(startX) {
 
 // PLACE RANDOM SPIKES + PLATFORMS
 addSpikeRow(1500);
-addPlatformWithSpikes(1800);
-addSpikeRow(2200);
-addPlatformWithSpikes(2500);
+addSpikeRow(2000);
+addSpikeRow(2500);
 addSpikeRow(3000);
-addPlatformWithSpikes(3300);
-addSpikeRow(3800);
+addSpikeRow(3500);
+addSpikeRow(4000);
 
 // FINISH LINE
 objects.push({ x: 4500, y: 200, w: 20, h: 200, type: "finish" });
@@ -133,7 +133,7 @@ objects.push({ x: 4500, y: 200, w: 20, h: 200, type: "finish" });
 
 document.addEventListener("keydown", (e) => {
     if (e.code === "Space" && player.grounded) {
-        player.dy = -14;   // HIGHER JUMP
+        player.dy = -14;
         player.grounded = false;
     }
 });
@@ -147,21 +147,19 @@ function loop() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     // Physics
-    player.dy += 0.4;   // LONGER JUMP
+    player.dy += 0.4;
     player.y += player.dy;
 
-    // Ground collision
     if (player.y >= 330) {
         player.y = 330;
         player.dy = 0;
         player.grounded = true;
     }
 
-    // Movement (FASTER SPEED)
+    // Movement
     player.x += 4;
     demon.x += demon.speed;
 
-    // Camera
     let camX = player.x - 100;
 
     // Draw player
@@ -180,7 +178,6 @@ function loop() {
             ctx.fillStyle = "#888";
             ctx.fillRect(o.x - camX, o.y, o.w, o.h);
 
-            // Platform collision
             if (player.x < o.x + o.w &&
                 player.x + player.w > o.x &&
                 player.y + player.h > o.y &&
@@ -195,7 +192,7 @@ function loop() {
             return;
         }
 
-        // TRIANGLE SPIKES
+        // SPIKES (triangle)
         if (o.type === "spike") {
             ctx.fillStyle = "#ff0000";
             ctx.beginPath();
@@ -205,10 +202,12 @@ function loop() {
             ctx.closePath();
             ctx.fill();
 
-            // Spike collision
+            // FIXED COLLISION — only die when touching triangle
             if (player.x < o.x + o.w &&
                 player.x + player.w > o.x &&
-                player.y + player.h > o.y) {
+                player.y + player.h > o.y &&
+                player.y < o.y + o.h) {
+
                 demon.speed += 0.1;
                 end();
             }
@@ -231,7 +230,6 @@ function loop() {
         }
     });
 
-    // Demon catches player
     if (demon.x + demon.w >= player.x) {
         end();
     }
@@ -240,10 +238,10 @@ function loop() {
 }
 
 function end() {
-    location.reload(); // INSTANT RESTART
+    location.reload();
 }
 
-loop(); // ⭐ GAME LOOP ALWAYS STARTS
+loop();
 </script>
 </body>
 </html>
