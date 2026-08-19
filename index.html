@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WoodWorkChaos – Loading Screen + Upgrades</title>
+<title>WoodWorkChaos – Maze Edition</title>
 <style>
   body {
     margin:0;
@@ -53,7 +53,7 @@
 
 <div id="loadingScreen">
   <div id="title">WoodWorkChaos</div>
-  <div id="subtitle">Press any key to begin</div>
+  <div id="subtitle">Press any key to enter the maze</div>
 </div>
 
 <canvas id="game" width="1200" height="700"></canvas>
@@ -74,73 +74,69 @@ function startGame(){
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let levelIndex = 0;
+// PLAYER
+let player = { x:120, y:120, w:32, h:48, vx:0, vy:0 };
 
-const corners = [
-  { x:100, y:100 },
-  { x:1000, y:100 },
-  { x:100, y:550 },
-  { x:1000, y:550 }
-];
-
+// SKINS
 const skins = ["#ffcc99", "#99ccff", "#ff9999"];
 let currentSkin = 0;
 
-function makeLevel(num){
-  const corner = corners[num % 4];
-  return {
-    name: "Level " + num,
-    time: 60 - num * 2,
-    healthMax: 100,
-    finish: { x: corner.x, y: corner.y, w: 140, h: 100 },
-    tools: [
-      { name:"clamp", x:200, y:200, w:60, h:16, vx:2+num*0.3, vy:0 },
-      { name:"sander", x:900, y:400, w:80, h:18, vx:-2.5-num*0.2, vy:0 },
-      { name:"glue", x:600, y:150, w:40, h:40, vx:0, vy:2+num*0.3 },
-      { name:"chisel", x:500, y:600, w:50, h:12, vx:2.2+num*0.2, vy:-1.5-num*0.2 },
-      { name:"mallet", x:700, y:300, w:40, h:40, vx:-2.5-num*0.2, vy:2.5+num*0.2 },
-      { name:"sawblade", x:300, y:300, w:50, h:50, vx:3+num*0.2, vy:3+num*0.2 },
-      { name:"paintbucket", x:800, y:200, w:40, h:60, vx:-2-num*0.1, vy:2+num*0.1 },
-      { name:"toolcart", x:400, y:500, w:90, h:40, vx:2+num*0.2, vy:-2-num*0.2 }
-    ]
-  };
-}
-
-const levels = [];
-for(let i=1;i<=15;i++){
-  levels.push(makeLevel(i));
-}
-
-let player;
-let followerCube;
-let tools;
-let finishZone;
-let health;
-let timeLeft;
+// HEALTH + TIMER
+let health = 100;
+let timeLeft = 120;
 let last = performance.now();
 let keys = {};
 let gameOver = false;
 let win = false;
-let allCleared = false;
 
-const bounds = { minX:50, minY:50, maxX:1150, maxY:650 };
+// FINISH IN MIDDLE
+const finishZone = { x:560, y:310, w:80, h:80 };
 
-function startLevel(index){
-  const lvl = levels[index];
+// MAZE WALLS (solid)
+const walls = [
+  // outer frame
+  {x:80, y:80, w:1040, h:20},
+  {x:80, y:80, w:20,   h:540},
+  {x:1100, y:80, w:20, h:540},
+  {x:80, y:600, w:1040, h:20},
 
-  player = { x:600, y:350, w:40, h:70, vx:0, vy:0 };
-  followerCube = { x:player.x + 80, y:player.y + 40, w:50, h:50 };
+  // inner maze segments
+  {x:160, y:140, w:300, h:20},
+  {x:160, y:140, w:20,  h:200},
+  {x:440, y:140, w:20,  h:200},
 
-  tools = JSON.parse(JSON.stringify(lvl.tools));
-  finishZone = lvl.finish;
-  health = lvl.healthMax;
-  timeLeft = lvl.time;
-  gameOver = false;
-  win = false;
-  allCleared = false;
-}
+  {x:220, y:260, w:240, h:20},
+  {x:220, y:260, w:20,  h:200},
+  {x:440, y:260, w:20,  h:200},
 
-startLevel(levelIndex);
+  {x:520, y:140, w:360, h:20},
+  {x:520, y:140, w:20,  h:200},
+  {x:860, y:140, w:20,  h:200},
+
+  {x:580, y:260, w:300, h:20},
+  {x:580, y:260, w:20,  h:220},
+  {x:860, y:260, w:20,  h:220},
+
+  {x:160, y:380, w:300, h:20},
+  {x:160, y:380, w:20,  h:220},
+  {x:440, y:380, w:20,  h:220},
+
+  {x:520, y:380, w:360, h:20},
+  {x:520, y:380, w:20,  h:220},
+  {x:860, y:380, w:20,  h:220},
+
+  // paths around center
+  {x:520, y:320, w:20,  h:160},
+  {x:640, y:320, w:20,  h:160},
+  {x:520, y:320, w:140, h:20},
+  {x:520, y:460, w:140, h:20},
+
+  // extra dead ends
+  {x:260, y:460, w:200, h:20},
+  {x:260, y:520, w:20,  h:80},
+  {x:760, y:460, w:200, h:20},
+  {x:940, y:460, w:20,  h:80}
+];
 
 window.addEventListener("keydown", e => {
   keys[e.key] = true;
@@ -150,13 +146,13 @@ window.addEventListener("keydown", e => {
   if(e.key === "3") currentSkin = 2;
 
   if(gameOver && e.key === "Enter"){
-    if(win && levelIndex < levels.length - 1){
-      levelIndex++;
-      startLevel(levelIndex);
-    } else {
-      levelIndex = 0;
-      startLevel(levelIndex);
-    }
+    // restart maze
+    player.x = 120;
+    player.y = 120;
+    health = 100;
+    timeLeft = 120;
+    gameOver = false;
+    win = false;
   }
 });
 
@@ -171,38 +167,29 @@ function update(dt){
     win = false;
   }
 
-  const speed = 300;
+  const speed = 260;
+  let vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
+  let vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
 
-  player.vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
-  player.vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
+  // try move X
+  let nextX = player.x + vx * dt;
+  let nextY = player.y;
 
-  player.x += player.vx * dt;
-  player.y += player.vy * dt;
-
-  if(player.x < bounds.minX) player.x = bounds.minX;
-  if(player.x + player.w > bounds.maxX) player.x = bounds.maxX - player.w;
-  if(player.y < bounds.minY) player.y = bounds.minY;
-  if(player.y + player.h > bounds.maxY) player.y = bounds.maxY - player.h;
-
-  followerCube.x += (player.x - followerCube.x) * 0.03;
-  followerCube.y += (player.y - followerCube.y) * 0.03;
-
-  if(collide(player, followerCube)){
-    health -= 2;
+  if(!hitsWall(nextX, nextY, player.w, player.h)){
+    player.x = nextX;
+  } else {
+    // bump = tiny health loss
+    health -= 0.5;
   }
 
-  for(let t of tools){
-    t.x += t.vx;
-    t.y += t.vy;
+  // try move Y
+  nextX = player.x;
+  nextY = player.y + vy * dt;
 
-    if(t.x < bounds.minX || t.x + t.w > bounds.maxX) t.vx *= -1;
-    if(t.y < bounds.minY || t.y + t.h > bounds.maxY) t.vy *= -1;
-
-    if(collide(player, t)){
-      health -= 10;
-      player.x += (player.x < t.x ? -40 : 40);
-      player.y += (player.y < t.y ? -40 : 40);
-    }
+  if(!hitsWall(nextX, nextY, player.w, player.h)){
+    player.y = nextY;
+  } else {
+    health -= 0.5;
   }
 
   if(health <= 0){
@@ -213,10 +200,19 @@ function update(dt){
   if(collide(player, finishZone)){
     gameOver = true;
     win = true;
-    if(levelIndex === levels.length - 1){
-      allCleared = true;
+  }
+}
+
+function hitsWall(x,y,w,h){
+  for(const wall of walls){
+    if(x < wall.x + wall.w &&
+       x + w > wall.x &&
+       y < wall.y + wall.h &&
+       y + h > wall.y){
+      return true;
     }
   }
+  return false;
 }
 
 function collide(a,b){
@@ -229,15 +225,24 @@ function collide(a,b){
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
+  // background
   ctx.fillStyle = "#d9b47a";
-  ctx.fillRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
+  ctx.fillRect(80,80,1040,520);
 
+  // maze walls
+  ctx.fillStyle = "#5a3b1e";
+  for(const wall of walls){
+    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+  }
+
+  // finish in middle
   ctx.fillStyle = "#8fd48f";
   ctx.fillRect(finishZone.x, finishZone.y, finishZone.w, finishZone.h);
   ctx.fillStyle = "#1f3f1a";
   ctx.font = "22px sans-serif";
-  ctx.fillText("FINISH", finishZone.x + 30, finishZone.y + finishZone.h/2);
+  ctx.fillText("FINISH", finishZone.x + 10, finishZone.y + finishZone.h/2);
 
+  // player
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.5)";
   ctx.shadowBlur = 12;
@@ -245,32 +250,12 @@ function draw(){
   ctx.fillRect(player.x, player.y, player.w, player.h);
   ctx.restore();
 
-  ctx.fillStyle = "#4a90e2";
-  ctx.fillRect(followerCube.x, followerCube.y, followerCube.w, followerCube.h);
-
-  for(let t of tools){
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.4)";
-    ctx.shadowBlur = 8;
-
-    if(t.name === "clamp") ctx.fillStyle = "#b00000";
-    else if(t.name === "sander") ctx.fillStyle = "#444";
-    else if(t.name === "glue") ctx.fillStyle = "#ffd54f";
-    else if(t.name === "chisel") ctx.fillStyle = "#c0c0c0";
-    else if(t.name === "mallet") ctx.fillStyle = "#5a3b1e";
-    else if(t.name === "sawblade") ctx.fillStyle = "#999";
-    else if(t.name === "paintbucket") ctx.fillStyle = "#3366ff";
-    else if(t.name === "toolcart") ctx.fillStyle = "#663300";
-
-    ctx.fillRect(t.x, t.y, t.w, t.h);
-    ctx.restore();
-  }
-
+  // HUD
   ctx.fillStyle = "#ffffff";
   ctx.font = "24px sans-serif";
   ctx.fillText("Health: " + Math.floor(health), 80, 40);
-  ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 350, 40);
-  ctx.fillText(levels[levelIndex].name, 80, 680);
+  ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 320, 40);
+  ctx.fillText("Maze – Finish in the middle", 80, 680);
 
   if(gameOver){
     ctx.fillStyle = "rgba(0,0,0,0.7)";
@@ -279,17 +264,13 @@ function draw(){
     ctx.fillStyle = "#fff";
     ctx.font = "40px sans-serif";
     if(win){
-      if(allCleared){
-        ctx.fillText("YOU BEAT ALL 15 LEVELS!", 350, 300);
-      } else {
-        ctx.fillText("LEVEL COMPLETE!", 420, 300);
-        ctx.font = "24px sans-serif";
-        ctx.fillText("Press ENTER for next level.", 450, 350);
-      }
-    } else {
-      ctx.fillText("YOU DIED!", 520, 300);
+      ctx.fillText("YOU ESCAPED THE WOODWORK CHAOS!", 200, 300);
       ctx.font = "24px sans-serif";
-      ctx.fillText("Press ENTER to restart.", 500, 350);
+      ctx.fillText("Press ENTER to run the maze again.", 320, 350);
+    } else {
+      ctx.fillText("YOU GOT LOST IN THE MAZE!", 260, 300);
+      ctx.font = "24px sans-serif";
+      ctx.fillText("Press ENTER to retry.", 420, 350);
     }
   }
 }
