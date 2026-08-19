@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Woodshop Warrior – Upgraded 2D</title>
+<title>Woodshop Warrior – Big Map Upgrade</title>
 <style>
   body {
     margin:0;
@@ -21,7 +21,7 @@
 </style>
 </head>
 <body>
-<canvas id="game" width="900" height="550"></canvas>
+<canvas id="game" width="1200" height="700"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
@@ -29,26 +29,28 @@ const ctx = canvas.getContext("2d");
 
 let levelIndex = 0;
 
+// FINISH CORNERS (rotates each level)
 const corners = [
-  { x:70, y:60 },       // top-left
-  { x:710, y:60 },      // top-right
-  { x:70, y:400 },      // bottom-left
-  { x:710, y:400 }      // bottom-right
+  { x:100, y:100 },
+  { x:1000, y:100 },
+  { x:100, y:550 },
+  { x:1000, y:550 }
 ];
 
+// MAKE LEVELS
 function makeLevel(num){
   const corner = corners[num % 4];
   return {
     name: "Level " + num,
-    time: 50 - num * 3,
-    rageMax: 100 - num * 2,
-    finish: { x: corner.x, y: corner.y, w: 120, h: 80 },
+    time: 55 - num * 3,
+    healthMax: 100,
+    finish: { x: corner.x, y: corner.y, w: 140, h: 100 },
     tools: [
-      { name:"clamp", x:140, y:110, w:60, h:16, vx:2+num*0.3, vy:0 },
-      { name:"sander", x:560, y:320, w:80, h:18, vx:-2.5-num*0.2, vy:0 },
-      { name:"glue", x:380, y:70, w:40, h:40, vx:0, vy:2+num*0.3 },
-      { name:"chisel", x:300, y:380, w:50, h:12, vx:2.2+num*0.2, vy:-1.5-num*0.2 },
-      { name:"mallet", x:500, y:200, w:40, h:40, vx:-2.5-num*0.2, vy:2.5+num*0.2 }
+      { name:"clamp", x:200, y:200, w:60, h:16, vx:2+num*0.3, vy:0 },
+      { name:"sander", x:900, y:400, w:80, h:18, vx:-2.5-num*0.2, vy:0 },
+      { name:"glue", x:600, y:150, w:40, h:40, vx:0, vy:2+num*0.3 },
+      { name:"chisel", x:500, y:600, w:50, h:12, vx:2.2+num*0.2, vy:-1.5-num*0.2 },
+      { name:"mallet", x:700, y:300, w:40, h:40, vx:-2.5-num*0.2, vy:2.5+num*0.2 }
     ]
   };
 }
@@ -59,10 +61,10 @@ for(let i=1;i<=10;i++){
 }
 
 let player;
-let box;
+let followerCube;
 let tools;
 let finishZone;
-let rage;
+let health;
 let timeLeft;
 let last = performance.now();
 let keys = {};
@@ -70,17 +72,20 @@ let gameOver = false;
 let win = false;
 let allCleared = false;
 
-const bounds = { minX:70, minY:60, maxX:830, maxY:480 };
+// BIGGER MAP BOUNDS
+const bounds = { minX:50, minY:50, maxX:1150, maxY:650 };
 
 function startLevel(index){
   const lvl = levels[index];
 
-  player = { x:380, y:230, w:40, h:70, vx:0, vy:0 };
-  box = { x:420, y:260, w:60, h:60 };
+  player = { x:600, y:350, w:40, h:70, vx:0, vy:0 };
+
+  // FOLLOWER CUBE
+  followerCube = { x:player.x + 80, y:player.y + 40, w:50, h:50 };
 
   tools = JSON.parse(JSON.stringify(lvl.tools));
   finishZone = lvl.finish;
-  rage = 0;
+  health = lvl.healthMax;
   timeLeft = lvl.time;
   gameOver = false;
   win = false;
@@ -89,6 +94,7 @@ function startLevel(index){
 
 startLevel(levelIndex);
 
+// KEY INPUT
 window.addEventListener("keydown", e => {
   keys[e.key] = true;
   if(gameOver && e.key === "Enter"){
@@ -103,6 +109,7 @@ window.addEventListener("keydown", e => {
 });
 window.addEventListener("keyup", e => keys[e.key] = false);
 
+// UPDATE LOOP
 function update(dt){
   if(gameOver) return;
 
@@ -112,21 +119,24 @@ function update(dt){
     win = false;
   }
 
-  const speed = 200;
+  const speed = 240;
   player.vx = (keys["ArrowLeft"] ? -speed : keys["ArrowRight"] ? speed : 0);
   player.vy = (keys["ArrowUp"] ? -speed : keys["ArrowDown"] ? speed : 0);
 
   player.x += player.vx * dt;
   player.y += player.vy * dt;
 
+  // MAP LIMITS
   if(player.x < bounds.minX) player.x = bounds.minX;
   if(player.x + player.w > bounds.maxX) player.x = bounds.maxX - player.w;
   if(player.y < bounds.minY) player.y = bounds.minY;
   if(player.y + player.h > bounds.maxY) player.y = bounds.maxY - player.h;
 
-  box.x = player.x + 20;
-  box.y = player.y + 30;
+  // FOLLOWER CUBE MOVES TOWARD PLAYER
+  followerCube.x += (player.x - followerCube.x) * 0.05;
+  followerCube.y += (player.y - followerCube.y) * 0.05;
 
+  // TOOL MOVEMENT + COLLISION
   for(let t of tools){
     t.x += t.vx;
     t.y += t.vy;
@@ -135,19 +145,18 @@ function update(dt){
     if(t.y < bounds.minY || t.y + t.h > bounds.maxY) t.vy *= -1;
 
     if(collide(player, t)){
-      rage += 10;
-      player.x += (player.x < t.x ? -30 : 30);
-      player.y += (player.y < t.y ? -30 : 30);
+      health -= 10;
+      player.x += (player.x < t.x ? -40 : 40);
+      player.y += (player.y < t.y ? -40 : 40);
     }
   }
 
-  const lvl = levels[levelIndex];
-  if(rage >= lvl.rageMax){
+  if(health <= 0){
     gameOver = true;
     win = false;
   }
 
-  if(collide(player, finishZone) && rage < lvl.rageMax){
+  if(collide(player, finishZone)){
     gameOver = true;
     win = true;
     if(levelIndex === levels.length - 1){
@@ -156,6 +165,7 @@ function update(dt){
   }
 }
 
+// COLLISION
 function collide(a,b){
   return a.x < b.x + b.w &&
          a.x + a.w > b.x &&
@@ -163,18 +173,22 @@ function collide(a,b){
          a.y + a.h > b.y;
 }
 
+// DRAW LOOP
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
+  // MAP
   ctx.fillStyle = "#d9b47a";
   ctx.fillRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
 
+  // FINISH ZONE
   ctx.fillStyle = "#8fd48f";
   ctx.fillRect(finishZone.x, finishZone.y, finishZone.w, finishZone.h);
   ctx.fillStyle = "#1f3f1a";
-  ctx.font = "18px sans-serif";
-  ctx.fillText("FINISH", finishZone.x + 20, finishZone.y + finishZone.h/2);
+  ctx.font = "22px sans-serif";
+  ctx.fillText("FINISH", finishZone.x + 30, finishZone.y + finishZone.h/2);
 
+  // PLAYER
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.5)";
   ctx.shadowBlur = 12;
@@ -182,9 +196,11 @@ function draw(){
   ctx.fillRect(player.x, player.y, player.w, player.h);
   ctx.restore();
 
-  ctx.fillStyle = "#c48a4a";
-  ctx.fillRect(box.x, box.y, box.w, box.h);
+  // FOLLOWER CUBE
+  ctx.fillStyle = "#4a90e2";
+  ctx.fillRect(followerCube.x, followerCube.y, followerCube.w, followerCube.h);
 
+  // TOOLS
   for(let t of tools){
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.4)";
@@ -198,30 +214,32 @@ function draw(){
     ctx.restore();
   }
 
+  // HUD
   ctx.fillStyle = "#ffffff";
-  ctx.font = "20px sans-serif";
-  ctx.fillText("Rage: " + Math.floor(rage) + "/" + levels[levelIndex].rageMax, 80, 40);
-  ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 320, 40);
-  ctx.fillText(levels[levelIndex].name, 80, 520);
+  ctx.font = "24px sans-serif";
+  ctx.fillText("Health: " + Math.floor(health), 80, 40);
+  ctx.fillText("Time: " + Math.max(0,timeLeft).toFixed(1) + "s", 350, 40);
+  ctx.fillText(levels[levelIndex].name, 80, 680);
 
+  // GAME OVER SCREEN
   if(gameOver){
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     ctx.fillStyle = "#fff";
-    ctx.font = "32px sans-serif";
+    ctx.font = "40px sans-serif";
     if(win){
       if(allCleared){
-        ctx.fillText("YOU CLEARED ALL 10 LEVELS!", 200, 250);
+        ctx.fillText("YOU BEAT ALL 10 LEVELS!", 350, 300);
       } else {
-        ctx.fillText("LEVEL CLEARED!", 300, 250);
-        ctx.font = "20px sans-serif";
-        ctx.fillText("Press ENTER for next level.", 320, 290);
+        ctx.fillText("LEVEL COMPLETE!", 420, 300);
+        ctx.font = "24px sans-serif";
+        ctx.fillText("Press ENTER for next level.", 450, 350);
       }
     } else {
-      ctx.fillText("WORKBENCH RAGE OVERLOAD!", 200, 250);
-      ctx.font = "20px sans-serif";
-      ctx.fillText("Press ENTER to restart.", 320, 290);
+      ctx.fillText("YOU DIED!", 520, 300);
+      ctx.font = "24px sans-serif";
+      ctx.fillText("Press ENTER to restart.", 500, 350);
     }
   }
 }
