@@ -75,63 +75,33 @@ let deathTimer = 0;
 let objects = [];
 
 /* ---------------------------------------------------
-   RANDOM SPIKE PATTERN GENERATORS
+   RANDOM 3‑SPIKE‑TALL ROW GENERATOR (ONE SECTION)
 --------------------------------------------------- */
 
-// Ground spike row (random length)
-function addRandomSpikeRow(startX) {
-    const count = Math.floor(Math.random() * 6) + 2;
-    for (let i = 0; i < count; i++) {
-        objects.push({ x: startX + i * 40, y: 330, w: 40, h: 40, type: "spike" });
+function addThreeTallSpikeRow(startX) {
+    const heights = [330, 290, 250]; // always 3 tall
+    const columns = Math.floor(Math.random() * 5) + 2; // 2–6 columns
+
+    for (let i = 0; i < columns; i++) {
+        for (let j = 0; j < 3; j++) {
+            objects.push({
+                x: startX + i * 40,
+                y: heights[j],
+                w: 40,
+                h: 40,
+                type: "spike"
+            });
+        }
     }
 }
 
-// Zig‑zag spikes
-function addRandomZigZag(startX) {
-    const count = Math.floor(Math.random() * 5) + 3;
-    for (let i = 0; i < count; i++) {
-        const y = (i % 2 === 0) ? 330 : 290;
-        objects.push({ x: startX + i * 40, y, w: 40, h: 40, type: "spike" });
-    }
-}
-
-// Staircase spikes
-function addRandomStairs(startX) {
-    const count = Math.floor(Math.random() * 5) + 3;
-    for (let i = 0; i < count; i++) {
-        const y = 330 - i * 40;
-        objects.push({ x: startX + i * 40, y, w: 40, h: 40, type: "spike" });
-    }
-}
-
-// Wave spikes
-function addRandomWave(startX) {
-    const count = Math.floor(Math.random() * 6) + 3;
-    for (let i = 0; i < count; i++) {
-        const y = (i % 3 === 0) ? 330 : (i % 3 === 1 ? 290 : 330);
-        objects.push({ x: startX + i * 40, y, w: 40, h: 40, type: "spike" });
-    }
-}
-
-// Mixed random pattern
-function addRandomMixedPattern(startX) {
-    const choice = Math.floor(Math.random() * 4);
-    if (choice === 0) addRandomSpikeRow(startX);
-    if (choice === 1) addRandomZigZag(startX);
-    if (choice === 2) addRandomStairs(startX);
-    if (choice === 3) addRandomWave(startX);
-}
-
-/* ---------------------------------------------------
-   PLACE RANDOM PATTERNS IN LEVEL
---------------------------------------------------- */
-
-addRandomMixedPattern(1500);
-addRandomMixedPattern(2000);
-addRandomMixedPattern(2500);
-addRandomMixedPattern(3000);
-addRandomMixedPattern(3500);
-addRandomMixedPattern(4000);
+// PLACE RANDOM 3‑SPIKE‑TALL ROWS
+addThreeTallSpikeRow(1500);
+addThreeTallSpikeRow(2000);
+addThreeTallSpikeRow(2500);
+addThreeTallSpikeRow(3000);
+addThreeTallSpikeRow(3500);
+addThreeTallSpikeRow(4000);
 
 // FINISH LINE
 objects.push({ x: 4500, y: 250, w: 20, h: 150, type: "finish" });
