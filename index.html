@@ -2,13 +2,19 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Chase Dash</title>
+<title>Cube Dash</title>
 <style>
     body { margin:0; background:#111; overflow:hidden; }
     canvas { background:#222; display:block; margin:0 auto; }
 </style>
 </head>
 <body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+    <h1>Cube Dash</h1>
+</div>
+
 <canvas id="game"></canvas>
 
 <script>
@@ -16,6 +22,13 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 canvas.width = 900;
 canvas.height = 400;
+
+// LOADING SCREEN FADE
+setTimeout(() => {
+    const load = document.getElementById("loadingScreen");
+    load.style.opacity = 0;
+    setTimeout(() => load.style.display = "none", 1000);
+}, 2000);
 
 // PLAYER
 let player = {
@@ -27,7 +40,7 @@ let player = {
     grounded: true
 };
 
-// CHASER (Cube Demon)
+// DEMON
 let demon = {
     x: -20,
     y: 300,
@@ -36,7 +49,7 @@ let demon = {
     speed: 2
 };
 
-// LEVEL OBJECTS
+// OBJECTS
 let objects = [
     {x:300, y:330, w:40, h:40, type:"spike"},
     {x:450, y:330, w:40, h:40, type:"spike"},
@@ -47,13 +60,15 @@ let objects = [
     {x:1300, y:330, w:40, h:40, type:"spike"},
     {x:1500, y:330, w:40, h:40, type:"spike"},
     {x:1700, y:330, w:40, h:40, type:"spike"},
-    {x:2000, y:330, w:40, h:40, type:"spike"}
+    {x:2000, y:330, w:40, h:40, type:"spike"},
+
+    // FINISH LINE
+    {x:2300, y:250, w:20, h:150, type:"finish"}
 ];
 
-// GAME SPEED
 let speed = 2;
 
-// INPUT — SPACE to jump
+// INPUT
 document.addEventListener("keydown", (e) => {
     if (e.code === "Space" && player.grounded) {
         player.dy = -10;
@@ -65,7 +80,7 @@ document.addEventListener("keydown", (e) => {
 function loop() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // Player physics
+    // Physics
     player.dy += 0.5;
     player.y += player.dy;
 
@@ -75,13 +90,11 @@ function loop() {
         player.grounded = true;
     }
 
-    // Player moves forward
+    // Movement
     player.x += speed;
-
-    // Demon chases player
     demon.x += demon.speed;
 
-    // CAMERA FOLLOW
+    // Camera
     let camX = player.x - 100;
 
     // Draw player
@@ -92,9 +105,11 @@ function loop() {
     ctx.fillStyle = "#f33";
     ctx.fillRect(demon.x - camX, demon.y, demon.w, demon.h);
 
-    // Draw objects + interactions
+    // Draw objects
     objects.forEach(o => {
-        ctx.fillStyle = "#f00"; // spikes always red
+        if (o.type === "spike") ctx.fillStyle = "#f00";
+        if (o.type === "finish") ctx.fillStyle = "#fff";
+
         ctx.fillRect(o.x - camX, o.y, o.w, o.h);
 
         // Collision
@@ -103,19 +118,20 @@ function loop() {
             player.y < o.y + o.h &&
             player.y + player.h > o.y) {
 
-            demon.speed += 0.1;   // demon gets faster by .1 ONLY on spikes
-            end("You hit a spike!");
+            if (o.type === "spike") {
+                demon.speed += 0.1;
+                end("You hit a spike!");
+            }
+
+            if (o.type === "finish") {
+                end("You Win!");
+            }
         }
     });
 
     // Demon catches player
     if (demon.x + demon.w >= player.x) {
         end("Cube Demon caught you!");
-    }
-
-    // Restart when player reaches screen edge
-    if (player.x - camX >= canvas.width - player.w) {
-        end("You reached the edge!");
     }
 
     requestAnimationFrame(loop);
