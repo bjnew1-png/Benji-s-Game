@@ -24,17 +24,16 @@ let player = {
     w: 30,
     h: 30,
     dy: 0,
-    jump: false,
     grounded: true
 };
 
 // CHASER (Cube Demon)
 let demon = {
-    x: 100 - 120,   // 12 tiles behind
+    x: 100 - 120,   // stays 12 tiles behind
     y: 300,
     w: 40,
     h: 40,
-    speed: 1.2      // slow creep
+    speed: 2        // SAME speed as level scroll
 };
 
 // LEVEL OBJECTS
@@ -62,9 +61,9 @@ let objects = [
 // GAME SPEED
 let speed = 2; // slow sprint
 
-// INPUT
-document.addEventListener("keydown", () => {
-    if (player.grounded) {
+// INPUT — SPACE to jump
+document.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && player.grounded) {
         player.dy = -10;
         player.grounded = false;
     }
@@ -87,7 +86,7 @@ function loop() {
     // Move level
     objects.forEach(o => o.x -= speed);
 
-    // Demon movement
+    // Demon moves same speed as level
     demon.x += demon.speed;
 
     // Draw player
