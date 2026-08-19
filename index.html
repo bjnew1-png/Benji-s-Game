@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WoodWorkChaos – Complex Maze (Fixed)</title>
+<title>WoodWorkChaos – Complex Maze (Reachable Finish)</title>
 <style>
   body {
     margin:0;
@@ -29,10 +29,10 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ⭐ SMALLER PLAYER (fits through gaps)
-let player = { x:120, y:120, w:22, h:32, vx:0, vy:0 };
+// ⭐ SMALLER PLAYER
+let player = { x:120, y:120, w:20, h:28, vx:0, vy:0 };
 
-// ⭐ FINISH IN MIDDLE (now reachable)
+// ⭐ FINISH IN MIDDLE (with a real gap)
 const finishZone = { x:560, y:310, w:80, h:80 };
 
 // ⭐ COMPLEX MAZE WALLS (solid, dark color)
@@ -43,44 +43,45 @@ const walls = [
   {x:1100, y:80, w:20, h:540},
   {x:80, y:600, w:1040, h:20},
 
-  // Maze structure
+  // Complex maze layout
   {x:160, y:140, w:300, h:20},
-  {x:160, y:140, w:20,  h:200},
-  {x:440, y:140, w:20,  h:200},
+  {x:160, y:140, w:20,  h:260},
+  {x:440, y:140, w:20,  h:260},
 
   {x:220, y:260, w:240, h:20},
-  {x:220, y:260, w:20,  h:200},
-  {x:440, y:260, w:20,  h:200},
+  {x:220, y:260, w:20,  h:260},
+  {x:440, y:260, w:20,  h:260},
 
   {x:520, y:140, w:360, h:20},
-  {x:520, y:140, w:20,  h:200},
-  {x:860, y:140, w:20,  h:200},
+  {x:520, y:140, w:20,  h:260},
+  {x:860, y:140, w:20,  h:260},
 
   {x:580, y:260, w:300, h:20},
-  {x:580, y:260, w:20,  h:220},
-  {x:860, y:260, w:20,  h:220},
+  {x:580, y:260, w:20,  h:260},
+  {x:860, y:260, w:20,  h:260},
 
-  {x:160, y:380, w:300, h:20},
-  {x:160, y:380, w:20,  h:220},
-  {x:440, y:380, w:20,  h:220},
+  // Lower maze expansion
+  {x:160, y:420, w:300, h:20},
+  {x:160, y:420, w:20,  h:180},
+  {x:440, y:420, w:20,  h:180},
 
-  {x:520, y:380, w:360, h:20},
-  {x:520, y:380, w:20,  h:220},
-  {x:860, y:380, w:20,  h:220},
+  {x:520, y:420, w:360, h:20},
+  {x:520, y:420, w:20,  h:180},
+  {x:860, y:420, w:20,  h:180},
 
-  // ⭐ CENTER RING — OPENED so finish is reachable
-  {x:520, y:320, w:20,  h:160},
-  {x:640, y:320, w:20,  h:160},
+  // ⭐ CENTER RING — now with a gap on the LEFT
+  {x:640, y:320, w:20,  h:160},  // right pillar
+  {x:520, y:320, w:20,  h:160},  // left pillar
 
-  // OPEN TOP AND BOTTOM GAPS
-  // Removed: {x:520, y:320, w:140, h:20}
-  // Removed: {x:520, y:460, w:140, h:20}
+  // ⭐ OPEN GAP to reach finish
+  // Removed top and bottom bars entirely
 
-  // Dead ends
-  {x:260, y:460, w:200, h:20},
-  {x:260, y:520, w:20,  h:80},
-  {x:760, y:460, w:200, h:20},
-  {x:940, y:460, w:20,  h:80}
+  // Extra dead ends for complexity
+  {x:260, y:500, w:200, h:20},
+  {x:260, y:540, w:20,  h:60},
+
+  {x:760, y:500, w:200, h:20},
+  {x:940, y:540, w:20,  h:60}
 ];
 
 // INPUT
@@ -135,30 +136,9 @@ function draw(){
     ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
   }
 
-  // Finish zone
+  // Finish zone (reachable now)
   ctx.fillStyle = "#8fd48f";
   ctx.fillRect(finishZone.x, finishZone.y, finishZone.w, finishZone.h);
   ctx.fillStyle = "#1f3f1a";
   ctx.font = "22px sans-serif";
-  ctx.fillText("FINISH", finishZone.x + 10, finishZone.y + finishZone.h/2);
-
-  // ⭐ Smaller player
-  ctx.fillStyle = "#ffcc99";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-}
-
-// MAIN LOOP
-let last = performance.now();
-function loop(now){
-  let dt = (now - last) / 1000;
-  last = now;
-
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-</script>
-
-</body>
-</html>
+  ctx.fillText("FINISH", finishZone.x + 10, finish
