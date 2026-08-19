@@ -1,39 +1,233 @@
-// Draw objects
-objects.forEach(o => {
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cube Dash</title>
+<style>
+    body { margin:0; background:#111; overflow:hidden; }
+    canvas { background:#222; display:block; margin:0 auto; }
 
-    // VISIBLE TRIANGLE SPIKES
-    if (o.type === "spike") {
-        ctx.fillStyle = "#ff0000";
-        ctx.beginPath();
-        ctx.moveTo(o.x - camX + o.w/2, o.y);        // top
-        ctx.lineTo(o.x - camX, o.y + o.h);          // bottom left
-        ctx.lineTo(o.x - camX + o.w, o.y + o.h);    // bottom right
-        ctx.closePath();
-        ctx.fill();
-
-        // Spike collision
-        if (player.x < o.x + o.w &&
-            player.x + player.w > o.x &&
-            player.y + player.h > o.y) {
-            demon.speed += 0.1;
-            end("You hit a spike!");
-        }
-
-        return; // skip rectangle drawing
+    #loadingScreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 60px;
+        font-family: Arial, sans-serif;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 1s ease;
     }
+</style>
+</head>
+<body>
 
-    // FINISH LINE
-    if (o.type === "finish") ctx.fillStyle = "#fff";
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+    <h1>Cube Dash</h1>
+</div>
 
-    ctx.fillRect(o.x - camX, o.y, o.w, o.h);
+<canvas id="game"></canvas>
 
-    // Finish collision
-    if (o.type === "finish") {
-        if (player.x < o.x + o.w &&
-            player.x + player.w > o.x &&
-            player.y < o.y + o.h &&
-            player.y + player.h > o.y) {
-            end("You Win!");
-        }
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = 900;
+canvas.height = 400;
+
+// LOADING SCREEN FADE
+setTimeout(() => {
+    const load = document.getElementById("loadingScreen");
+    load.style.opacity = 0;
+    setTimeout(() => load.style.display = "none", 1000);
+}, 2000);
+
+// PLAYER
+let player = {
+    x: 100,
+    y: 300,
+    w: 30,
+    h: 30,
+    dy: 0,
+    grounded: true
+};
+
+// DEMON
+let demon = {
+    x: -20,
+    y: 300,
+    w: 40,
+    h: 40,
+    speed: 2
+};
+
+// OBJECT LIST
+let objects = [];
+
+/* ---------------------------------------------------
+   RANDOM SPIKE PATTERN GENERATORS
+--------------------------------------------------- */
+
+// Ground spike row (random length)
+function addRandomSpikeRow(startX) {
+    const count = Math.floor(Math.random() * 6) + 2;
+    for (let i = 0; i < count; i++) {
+        objects.push({ x: startX + i * 40, y: 330, w: 40, h: 40, type: "spike" });
+    }
+}
+
+// Zig‑zag spikes
+function addRandomZigZag(startX) {
+    const count = Math.floor(Math.random() * 5) + 3;
+    for (let i = 0; i < count; i++) {
+        const y = (i % 2 === 0) ? 330 : 290;
+        objects.push({ x: startX + i * 40, y, w: 40, h: 40, type: "spike" });
+    }
+}
+
+// Staircase spikes
+function addRandomStairs(startX) {
+    const count = Math.floor(Math.random() * 5) + 3;
+    for (let i = 0; i < count; i++) {
+        const y = 330 - i * 40;
+        objects.push({ x: startX + i * 40, y, w: 40, h: 40, type: "spike" });
+    }
+}
+
+// Wave spikes
+function addRandomWave(startX) {
+    const count = Math.floor(Math.random() * 6) + 3;
+    for (let i = 0; i < count; i++) {
+        const y = (i % 3 === 0) ? 330 : (i % 3 === 1 ? 290 : 330);
+        objects.push({ x: startX + i * 40, y, w: 40, h: 40, type: "spike" });
+    }
+}
+
+// Mixed random pattern
+function addRandomMixedPattern(startX) {
+    const choice = Math.floor(Math.random() * 4);
+    if (choice === 0) addRandomSpikeRow(startX);
+    if (choice === 1) addRandomZigZag(startX);
+    if (choice === 2) addRandomStairs(startX);
+    if (choice === 3) addRandomWave(startX);
+}
+
+/* ---------------------------------------------------
+   PLACE RANDOM PATTERNS IN LEVEL
+--------------------------------------------------- */
+
+addRandomMixedPattern(1500);
+addRandomMixedPattern(2000);
+addRandomMixedPattern(2500);
+addRandomMixedPattern(3000);
+addRandomMixedPattern(3500);
+addRandomMixedPattern(4000);
+
+// FINISH LINE
+objects.push({ x: 4500, y: 250, w: 20, h: 150, type: "finish" });
+
+/* ---------------------------------------------------
+   INPUT
+--------------------------------------------------- */
+
+document.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && player.grounded) {
+        player.dy = -10;
+        player.grounded = false;
     }
 });
+
+/* ---------------------------------------------------
+   GAME LOOP
+--------------------------------------------------- */
+
+function loop() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Physics
+    player.dy += 0.5;
+    player.y += player.dy;
+
+    if (player.y >= 300) {
+        player.y = 300;
+        player.dy = 0;
+        player.grounded = true;
+    }
+
+    // Movement
+    player.x += 2;
+    demon.x += demon.speed;
+
+    // Camera
+    let camX = player.x - 100;
+
+    // Draw player
+    ctx.fillStyle = "#4af";
+    ctx.fillRect(player.x - camX, player.y, player.w, player.h);
+
+    // Draw demon
+    ctx.fillStyle = "#f33";
+    ctx.fillRect(demon.x - camX, demon.y, demon.w, demon.h);
+
+    // Draw objects
+    objects.forEach(o => {
+
+        // TRIANGLE SPIKES
+        if (o.type === "spike") {
+            ctx.fillStyle = "#ff0000";
+            ctx.beginPath();
+            ctx.moveTo(o.x - camX + o.w/2, o.y);
+            ctx.lineTo(o.x - camX, o.y + o.h);
+            ctx.lineTo(o.x - camX + o.w, o.y + o.h);
+            ctx.closePath();
+            ctx.fill();
+
+            // Spike collision
+            if (player.x < o.x + o.w &&
+                player.x + player.w > o.x &&
+                player.y + player.h > o.y) {
+                demon.speed += 0.1;
+                end("You hit a spike!");
+            }
+
+            return;
+        }
+
+        // FINISH LINE
+        if (o.type === "finish") ctx.fillStyle = "#fff";
+
+        ctx.fillRect(o.x - camX, o.y, o.w, o.h);
+
+        if (o.type === "finish") {
+            if (player.x < o.x + o.w &&
+                player.x + player.w > o.x &&
+                player.y < o.y + o.h &&
+                player.y + player.h > o.y) {
+                end("You Win!");
+            }
+        }
+    });
+
+    // Demon catches player
+    if (demon.x + demon.w >= player.x) {
+        end("Cube Demon caught you!");
+    }
+
+    requestAnimationFrame(loop);
+}
+
+function end(msg) {
+    alert(msg);
+    location.reload();
+}
+
+loop();
+</script>
+</body>
+</html>
