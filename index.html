@@ -50,17 +50,21 @@ let objects = [];
 let currentLevel = 0;
 let levels = [];
 
-/* ---------------- LEVEL DEFINITIONS ---------------- */
+/* ---------------------------------------------------
+   LEVEL GENERATOR WITH NEW RULES
+--------------------------------------------------- */
 
-function makeLevel(spikeStart, spikeCount, platformStart, finishX) {
+function makeLevel(spikeStart, spikeCount, finishX) {
     let objs = [];
 
-    // ground spikes row (1–3 long, repeated spikeCount times)
     for (let i = 0; i < spikeCount; i++) {
+
+        // 1–3 spikes long
         const count = Math.floor(Math.random() * 3) + 1;
         const offset = Math.floor(Math.random() * 200);
         const baseX = spikeStart + i * 400 + offset;
 
+        // Ground spikes
         for (let j = 0; j < count; j++) {
             objs.push({
                 x: baseX + j * 40,
@@ -71,14 +75,15 @@ function makeLevel(spikeStart, spikeCount, platformStart, finishX) {
             });
         }
 
-        // platform in front of each spike row
+        // PLATFORM 3–5 blocks AFTER spikes
+        const platformOffset = (Math.floor(Math.random() * 3) + 3) * 40;
+        const platformX = baseX + count * 40 + platformOffset;
         const platformY = Math.floor(Math.random() * 3) * 40 + 200;
-        const platformWidth = Math.floor(Math.random() * 4) + 2;
-        const platX = baseX + count * 40 + 120;
+        const platformWidth = Math.floor(Math.random() * 3) + 2;
 
-        for (let k = 0; k < platformWidth; k++) {
+        for (let p = 0; p < platformWidth; p++) {
             objs.push({
-                x: platX + k * 40,
+                x: platformX + p * 40,
                 y: platformY,
                 w: 40,
                 h: 40,
@@ -86,11 +91,14 @@ function makeLevel(spikeStart, spikeCount, platformStart, finishX) {
             });
         }
 
-        const spikeOnPlatCount = Math.floor(Math.random() * 3) + 1;
-        for (let s = 0; s < spikeOnPlatCount; s++) {
+        // SPIKES AFTER PLATFORM (at least 4 blocks away)
+        const spikeAfterX = platformX + platformWidth * 40 + 160;
+        const spikeAfterCount = Math.floor(Math.random() * 3) + 1;
+
+        for (let s = 0; s < spikeAfterCount; s++) {
             objs.push({
-                x: platX + s * 40,
-                y: platformY - 40,
+                x: spikeAfterX + s * 40,
+                y: 330,
                 w: 40,
                 h: 40,
                 type: "spike"
@@ -98,38 +106,30 @@ function makeLevel(spikeStart, spikeCount, platformStart, finishX) {
         }
     }
 
-    // extra platform section
-    const pY = Math.floor(Math.random() * 3) * 40 + 200;
-    const pW = Math.floor(Math.random() * 4) + 3;
-    for (let i = 0; i < pW; i++) {
-        objs.push({
-            x: platformStart + i * 40,
-            y: pY,
-            w: 40,
-            h: 40,
-            type: "platform"
-        });
-    }
-
-    // finish line
+    // Finish line
     objs.push({ x: finishX, y: 200, w: 20, h: 200, type: "finish" });
 
     return objs;
 }
 
-// 10 levels with different spacing
-levels.push(makeLevel(1200, 3, 2200, 3200));  // Level 1
-levels.push(makeLevel(1300, 4, 2400, 3600));  // Level 2
-levels.push(makeLevel(1400, 4, 2600, 3800));  // Level 3
-levels.push(makeLevel(1500, 5, 2800, 4000));  // Level 4
-levels.push(makeLevel(1600, 5, 3000, 4200));  // Level 5
-levels.push(makeLevel(1700, 6, 3200, 4400));  // Level 6
-levels.push(makeLevel(1800, 6, 3400, 4600));  // Level 7
-levels.push(makeLevel(1900, 7, 3600, 4800));  // Level 8
-levels.push(makeLevel(2000, 7, 3800, 5000));  // Level 9
-levels.push(makeLevel(2100, 8, 4000, 5200));  // Level 10
+/* ---------------------------------------------------
+   10 LEVELS
+--------------------------------------------------- */
 
-/* ---------------- LEVEL LOADING ---------------- */
+levels.push(makeLevel(1200, 3, 3200));
+levels.push(makeLevel(1300, 4, 3600));
+levels.push(makeLevel(1400, 4, 3800));
+levels.push(makeLevel(1500, 5, 4000));
+levels.push(makeLevel(1600, 5, 4200));
+levels.push(makeLevel(1700, 6, 4400));
+levels.push(makeLevel(1800, 6, 4600));
+levels.push(makeLevel(1900, 7, 4800));
+levels.push(makeLevel(2000, 7, 5000));
+levels.push(makeLevel(2100, 8, 5200));
+
+/* ---------------------------------------------------
+   LOAD LEVEL
+--------------------------------------------------- */
 
 function loadLevel(index) {
     currentLevel = index % levels.length;
@@ -154,7 +154,9 @@ function loadLevel(index) {
     objects = JSON.parse(JSON.stringify(levels[currentLevel]));
 }
 
-/* ---------------- INPUT ---------------- */
+/* ---------------------------------------------------
+   INPUT
+--------------------------------------------------- */
 
 document.addEventListener("keydown", (e) => {
     if (e.code === "Space" && player.grounded) {
@@ -163,12 +165,13 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-/* ---------------- GAME LOOP ---------------- */
+/* ---------------------------------------------------
+   GAME LOOP
+--------------------------------------------------- */
 
 function loop() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // physics
     player.dy += 0.4;
     player.y += player.dy;
 
@@ -178,24 +181,20 @@ function loop() {
         player.grounded = true;
     }
 
-    // movement
     player.x += 4;
     demon.x += demon.speed;
 
     let camX = player.x - 100;
 
-    // player
     ctx.fillStyle = "#4af";
     ctx.fillRect(player.x - camX, player.y, player.w, player.h);
 
-    // demon
     ctx.fillStyle = "#f33";
     ctx.fillRect(demon.x - camX, demon.y, demon.w, demon.h);
 
-    // objects
     objects.forEach(o => {
 
-        // platform
+        /* PLATFORM — NOW KILLS YOU */
         if (o.type === "platform") {
             ctx.fillStyle = "#888";
             ctx.fillRect(o.x - camX, o.y, o.w, o.h);
@@ -203,20 +202,16 @@ function loop() {
             if (player.x < o.x + o.w &&
                 player.x + player.w > o.x &&
                 player.y + player.h > o.y &&
-                player.y + player.h < o.y + 20 &&
-                player.dy > 0) {
-
-                player.y = o.y - player.h;
-                player.dy = 0;
-                player.grounded = true;
+                player.y < o.y + o.h) {
+                restartLevel();
             }
 
             return;
         }
 
-        // spikes (white tip + red base)
+        /* SPIKES — WHITE TIP + RED BASE */
         if (o.type === "spike") {
-            // white tip
+
             ctx.fillStyle = "#ffffff";
             ctx.beginPath();
             ctx.moveTo(o.x - camX + o.w/2, o.y);
@@ -225,7 +220,6 @@ function loop() {
             ctx.closePath();
             ctx.fill();
 
-            // red base
             ctx.fillStyle = "#ff0000";
             ctx.beginPath();
             ctx.moveTo(o.x - camX + o.w*0.25, o.y + o.h*0.4);
@@ -235,20 +229,17 @@ function loop() {
             ctx.closePath();
             ctx.fill();
 
-            // collision
             if (player.x < o.x + o.w &&
                 player.x + player.w > o.x &&
                 player.y + player.h > o.y &&
                 player.y < o.y + o.h) {
-
-                demon.speed += 0.1;
                 restartLevel();
             }
 
             return;
         }
 
-        // finish line
+        /* FINISH LINE */
         if (o.type === "finish") ctx.fillStyle = "#fff";
 
         ctx.fillRect(o.x - camX, o.y, o.w, o.h);
@@ -258,7 +249,6 @@ function loop() {
                 player.x + player.w > o.x &&
                 player.y < o.y + o.h &&
                 player.y + player.h > o.y) {
-
                 nextLevel();
             }
         }
@@ -271,7 +261,9 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
-/* ---------------- LEVEL CONTROL ---------------- */
+/* ---------------------------------------------------
+   LEVEL CONTROL
+--------------------------------------------------- */
 
 function restartLevel() {
     loadLevel(currentLevel);
@@ -281,7 +273,9 @@ function nextLevel() {
     loadLevel(currentLevel + 1);
 }
 
-/* ---------------- START ---------------- */
+/* ---------------------------------------------------
+   START GAME
+--------------------------------------------------- */
 
 loadLevel(0);
 loop();
