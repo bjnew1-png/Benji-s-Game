@@ -67,6 +67,10 @@ let demon = {
     speed: 2
 };
 
+// DEATH ANIMATION
+let dying = false;
+let deathTimer = 0;
+
 // OBJECT LIST
 let objects = [];
 
@@ -148,6 +152,35 @@ document.addEventListener("keydown", (e) => {
 --------------------------------------------------- */
 
 function loop() {
+
+    // DEATH ANIMATION
+    if (dying) {
+        deathTimer++;
+
+        let shake = Math.sin(deathTimer * 0.5) * 10;
+        let shrink = Math.max(0, 30 - deathTimer);
+
+        ctx.save();
+        ctx.translate(shake, 0);
+
+        ctx.fillStyle = "#ff0000";
+        ctx.fillRect(
+            player.x - (player.x - 100) - shrink/2,
+            player.y + shrink/2,
+            shrink,
+            shrink
+        );
+
+        ctx.restore();
+
+        if (deathTimer > 30) {
+            location.reload();
+        }
+
+        requestAnimationFrame(loop);
+        return;
+    }
+
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     // Physics
@@ -160,8 +193,8 @@ function loop() {
         player.grounded = true;
     }
 
-    // Movement
-    player.x += 2;
+    // Movement (FASTER SPEED)
+    player.x += 4;
     demon.x += demon.speed;
 
     // Camera
@@ -193,7 +226,7 @@ function loop() {
                 player.x + player.w > o.x &&
                 player.y + player.h > o.y) {
                 demon.speed += 0.1;
-                end("You hit a spike!");
+                end();
             }
 
             return;
@@ -209,22 +242,22 @@ function loop() {
                 player.x + player.w > o.x &&
                 player.y < o.y + o.h &&
                 player.y + player.h > o.y) {
-                end("You Win!");
+                end();
             }
         }
     });
 
     // Demon catches player
     if (demon.x + demon.w >= player.x) {
-        end("Cube Demon caught you!");
+        end();
     }
 
     requestAnimationFrame(loop);
 }
 
-function end(msg) {
-    alert(msg);
-    location.reload();
+function end() {
+    dying = true;
+    deathTimer = 0;
 }
 
 loop();
